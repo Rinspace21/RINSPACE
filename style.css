@@ -1,6 +1,6 @@
 body{
-    background-color: #0e7c8b;
-    color: #ac7715;
+    background-color: #176c77;
+    color: #b39867;
     font-family: Georgia, serif;
     margin: 40px;
 }
@@ -8,9 +8,20 @@ body{
 h1 {
     font-size: 48px;
     letter-spacing: 4px;
+    animation: grow 7s ease-out;
 }
 
 p {
     font-size: 18px;
     font-style: italic;
+}
+@keyframes grow {
+    from {
+        transfrom: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
