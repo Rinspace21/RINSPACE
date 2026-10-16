@@ -17,11 +17,44 @@ p {
 }
 @keyframes grow {
     from {
-        transfrom: scale(0.5);
+        transform: scale(0.5);
         opacity: 0;
     }
     to {
         transform: scale(1);
         opacity: 1;
     }
+}
+.stem {
+  stroke-dasharray: 150;
+  stroke-dashoffset: 150;
+  animation: sprout 3s ease-out forwards;
+}
+
+@keyframes sprout {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.leaf {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: unfurl 1s ease-out 3s forwards;
+}
+
+@keyframes unfurl {
+  0% {
+    opacity: 0;
+    transform: scaleX(0) rotate(60deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scaleX(0.8) rotate(-8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1) rotate(0deg);
+  }
 }
