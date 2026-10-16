@@ -1,4 +1,5 @@
 body{
+    text-align: center;
     background-color: #176c77;
     color: #b39867;
     font-family: Georgia, serif;
@@ -26,9 +27,9 @@ p {
     }
 }
 .stem {
-  stroke-dasharray: 150;
-  stroke-dashoffset: 150;
-  animation: sprout 3s ease-out forwards;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: sprout 5s ease-out forwards;
 }
 
 @keyframes sprout {
@@ -57,4 +58,11 @@ p {
     opacity: 1;
     transform: scaleX(1) rotate(0deg);
   }
+}
+svg {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 500px;
+  height: auto;
 }
