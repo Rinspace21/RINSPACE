@@ -5,10 +5,40 @@
     <link rel="stylesheet" href="style.css">
     </head>
     <body>
+ <svg class="forest" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <filter id="blur-far">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+    <filter id="blur-near">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+  </defs>
+  <g fill="#2c4a42" opacity="0.35" filter="url(#blur-far)">
+    <polygon points="-5,560 40,280 85,560" />
+    <polygon points="85,560 130,250 175,560" />
+    <polygon points="175,560 220,300 265,560" />
+    <polygon points="265,560 310,260 355,560" />
+    <polygon points="355,560 400,290 445,560" />
+    <polygon points="445,560 490,245 535,560" />
+    <polygon points="535,560 580,285 625,560" />
+    <polygon points="625,560 670,255 715,560" />
+    <polygon points="715,560 760,295 805,560" />
+    <polygon points="805,560 850,265 895,560" />
+    <polygon points="895,560 940,280 985,560" />
+  </g>
+  <g fill="#16302a" opacity="0.75" filter="url(#blur-near)">
+    <polygon points="0,560 60,330 120,560" />
+    <polygon points="140,560 200,360 260,560" />
+    <polygon points="740,560 800,350 860,560" />
+    <polygon points="890,560 950,320 1010,560" />
+  </g>
+  <rect x="0" y="560" width="1000" height="40" fill="#5b3a29" />
+</svg>
+<div class="ground"></div>       
         <h1>Rinspace</h1>
         <p>Everything comes with a story.</p>
-        <svg width="700" height="900" viewBox="0 150 300 250">
-  <rect x="0" y="350" width="300" height="50" fill="#5b3a29" />
+        <svg class="plant" viewBox="0 150 300 200">
 <path class="stem" d="M150 350 Q130 280 150 200" stroke="#3a7d44" stroke-width="6" fill="none" pathLength="100" />
 <ellipse class="leaf" cx="120" cy="220" rx="30" ry="12" fill="#4caf50" />
 </svg>
