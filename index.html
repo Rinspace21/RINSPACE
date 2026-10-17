@@ -13,26 +13,33 @@
     <filter id="blur-near">
       <feGaussianBlur stdDeviation="1.5" />
     </filter>
-  </defs>
+      <linearGradient id="light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6d5" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#fff6d5" stop-opacity="0.12" />
+    </linearGradient>
+</defs>
   <g fill="#2c4a42" opacity="0.35" filter="url(#blur-far)">
-    <polygon points="-5,560 40,280 85,560" />
-    <polygon points="85,560 130,250 175,560" />
-    <polygon points="175,560 220,300 265,560" />
-    <polygon points="265,560 310,260 355,560" />
-    <polygon points="355,560 400,290 445,560" />
-    <polygon points="445,560 490,245 535,560" />
-    <polygon points="535,560 580,285 625,560" />
-    <polygon points="625,560 670,255 715,560" />
-    <polygon points="715,560 760,295 805,560" />
-    <polygon points="805,560 850,265 895,560" />
-    <polygon points="895,560 940,280 985,560" />
+    <polygon points="-15,560 30,-20 75,560" />
+    <polygon points="65,560 110,-60 155,560" />
+    <polygon points="145,560 190,10 235,560" />
+    <polygon points="225,560 270,-40 315,560" />
+    <polygon points="305,560 350,30 395,560" />
+    <polygon points="605,560 650,40 695,560" />
+    <polygon points="805,560 850,-30 895,560" />
+    <polygon points="885,560 930,-50 975,560" />
+    <polygon points="965,560 1010,0 1055,560" />
   </g>
   <g fill="#16302a" opacity="0.75" filter="url(#blur-near)">
-    <polygon points="0,560 60,330 120,560" />
-    <polygon points="140,560 200,360 260,560" />
-    <polygon points="740,560 800,350 860,560" />
-    <polygon points="890,560 950,320 1010,560" />
+    <polygon points="0,560 60,20 120,560" />
+    <polygon points="160,560 220,60 280,560" />
+    <polygon points="290,560 340,90 390,560" />
+    <polygon points="620,560 670,120 720,560" />
+    <polygon points="780,560 840,10 900,560" />
+    <polygon points="900,560 960,40 1020,560" />
   </g>
+  <ellipse cx="720" cy="0" rx="60" ry="30" fill="#fff6d5" opacity="0.35" filter="url(#blur-far)" />
+  <polygon points="690,0 750,0 560,560 450,560" fill="url(#light)" filter="url(#blur-far)" />
+  <ellipse cx="505" cy="560" rx="80" ry="14" fill="#fff6d5" opacity="0.3" filter="url(#blur-far)" />
   <rect x="0" y="560" width="1000" height="40" fill="#5b3a29" />
 </svg>
 <div class="ground"></div>       
