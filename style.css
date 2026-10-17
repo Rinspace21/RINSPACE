@@ -41,8 +41,34 @@ p {
 .leaf {
   opacity: 0;
   transform-box: fill-box;
-  transform-origin: right center;
+  transform-origin: left center;
   animation: unfurl 1s ease-out 3s forwards;
+}
+.leaf-bottom {
+  animation-delay: 1.5s;
+}
+
+.leaf-middle {
+  animation-delay: 2.3s;
+}
+
+.leaf-top {
+  animation: emerge 2s ease-out 4.6s forwards;
+}
+
+@keyframes emerge {
+  0% {
+    opacity: 0;
+    transform: scale(0.1, 0.2);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(0.5, 0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1, 1);
+  }
 }
 
 @keyframes unfurl {
