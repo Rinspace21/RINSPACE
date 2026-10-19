@@ -1,6 +1,7 @@
 body{
     text-align: center;
-    background-color: #176c77;
+    background: radial-gradient(ellipse at 50% 85%, #123c45 0%, #0a1a22 55%, #05090d 100%);
+  background-attachment: fixed;
     color: #b39867;
     font-family: Georgia, serif;
     margin: 40px;
@@ -115,7 +116,7 @@ svg {
   left: 0;
   width: 100%;
   height: 10vh;
-  background-color: #24180c;
+  background-color: #1c1410;
 }
 .crumbs {
   transform-box: fill-box;
