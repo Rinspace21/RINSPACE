@@ -118,7 +118,7 @@ svg {
   height: 10vh;
   background-color: #1c1410;
 }
-.crumbs {
+  .crumbs {
   transform-box: fill-box;
   transform-origin: center bottom;
   animation: burst 1.5s ease-out both;
