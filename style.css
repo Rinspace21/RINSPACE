@@ -283,26 +283,12 @@ svg {
 body::before {
   content: "";
   position: fixed;
-  top: -60px;
-  left: -60px;
-  right: -60px;
-  bottom: -60px;
-  z-index: -2;
-  background: url("room-backdrop.jpg") center / cover;
-  filter: blur(30px) brightness(0.5);
-}
-
-body::after {
-  content: "";
-  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   bottom: 18vh;
-  left: 50%;
-  width: min(100vw, 87vh);
-  transform: translateX(-50%);
-  z-index: -1;
-  background: url("room-backdrop.jpg") center bottom / cover;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  z-index: -2;
+  background: url("room-backdrop-plant.jpg") center bottom / cover;
 }
 
 h1,
