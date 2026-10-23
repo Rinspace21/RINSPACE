@@ -66,24 +66,29 @@
       <feGaussianBlur stdDeviation="6" />
     </filter>
   </defs>
-  <polygon class="frame-light" points="418,680 1448,-600 1650,-600 619,680" fill="url(#frameLight)" filter="url(#soft)" />    
+  <polygon class="frame-light" points="408,680 1470,-600 1649,-600 587,680" fill="url(#frameLight)" filter="url(#soft)">
+    <animate attributeName="opacity" from="1" to="0.25" begin="5.5s" dur="3s" fill="freeze" />
+  </polygon>
+  <polygon class="frame-glow" points="579,474 889,101 889,316 579,689" fill="url(#frameLight)" filter="url(#soft)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" begin="5.5s" dur="3s" fill="freeze" />
+  </polygon>
   <g class="dust">
-    <circle cx="600" cy="560" r="2" />
-    <circle cx="560" cy="640" r="1.5" />
-    <circle cx="610" cy="630" r="2.5" />
-    <circle cx="680" cy="430" r="2" />
-    <circle cx="650" cy="520" r="1.5" />
-    <circle cx="790" cy="300" r="2.5" />
-    <circle cx="820" cy="330" r="1.5" />
-    <circle cx="850" cy="300" r="2" />
-    <circle cx="880" cy="200" r="1.5" />
-    <circle cx="930" cy="180" r="2.5" />
-    <circle cx="910" cy="230" r="2" />
-    <circle cx="1000" cy="180" r="1.5" />
-    <circle cx="1040" cy="60" r="2" />
-    <circle cx="1020" cy="120" r="1.5" />
-    <circle cx="1100" cy="-40" r="2" />
-    <circle cx="1150" cy="-150" r="1.5" />
+        <circle cx="600" cy="535" r="2" />
+    <circle cx="615" cy="492" r="1.5" />
+    <circle cx="630" cy="546" r="2.5" />
+    <circle cx="650" cy="439" r="2" />
+    <circle cx="665" cy="487" r="1.5" />
+    <circle cx="685" cy="439" r="2.5" />
+    <circle cx="700" cy="376" r="2" />
+    <circle cx="720" cy="417" r="1.5" />
+    <circle cx="735" cy="331" r="2" />
+    <circle cx="750" cy="370" r="2.5" />
+    <circle cx="770" cy="294" r="1.5" />
+    <circle cx="790" cy="273" r="2" />
+    <circle cx="805" cy="302" r="1.5" />
+    <circle cx="825" cy="336" r="2.5" />
+    <circle cx="845" cy="211" r="2" />
+    <circle cx="865" cy="201" r="1.5" />
   </g>
 
   <g class="sway">
