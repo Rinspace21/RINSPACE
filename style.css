@@ -91,6 +91,7 @@ svg {
   transform: translateX(-50%);
   margin: 0;
   overflow: visible;
+  max-width: min(500px, 66vh);  
 }
 .ground {
   position: fixed;
