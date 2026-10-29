@@ -351,3 +351,24 @@ body::before {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+
+/* Roots grow when the bottom 25% of the stem is hovered (mouse) or tapped (phone) */
+.root-zone {
+  cursor: pointer;
+}
+
+.roots {
+  pointer-events: none;
+}
+
+.root {
+  stroke-dasharray: 100 200;
+  stroke-dashoffset: 101;
+  transition: stroke-dashoffset 0.8s ease-in;
+}
+
+.plant:has(.root-zone:hover) .root,
+.plant.show-roots .root {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--t) linear var(--d);
+}
