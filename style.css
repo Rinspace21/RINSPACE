@@ -315,3 +315,8 @@ p {
 .ground::after {
   right: 0;
 }
+
+/* Leaf links: soft gold glow on hover */
+.plant a:hover {
+  filter: url(#leafHalo);
+}
