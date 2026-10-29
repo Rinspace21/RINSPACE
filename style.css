@@ -90,7 +90,7 @@ svg {
   position: fixed;
   bottom: 12vh;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 19.51%);
   margin: 0;
   overflow: visible;
   max-width: min(500px, 66vh);  
@@ -352,12 +352,15 @@ body::before {
   -webkit-backdrop-filter: none;
 }
 
-/* Roots grow when the bottom 25% of the stem is hovered (mouse) or tapped (phone) */
+
+/* Roots grow when the bottom 25% of the stem is hovered (mouse) or tapped (phone).
+   They stay out while the mouse is on them, glow, and work as a link. */
 .root-zone {
   cursor: pointer;
 }
 
-.roots {
+.roots-link .roots,
+.roots-hit {
   pointer-events: none;
 }
 
@@ -368,7 +371,23 @@ body::before {
 }
 
 .plant:has(.root-zone:hover) .root,
+.plant:has(.roots-link:hover) .root,
 .plant.show-roots .root {
   stroke-dashoffset: 0;
   transition: stroke-dashoffset var(--t) linear var(--d);
+}
+
+.plant:has(.root-zone:hover) .roots-hit,
+.plant:has(.roots-link:hover) .roots-hit,
+.plant.show-roots .roots-hit {
+  pointer-events: all;
+}
+
+.plant a.roots-link:hover {
+  animation: none;
+  filter: none;
+}
+
+.roots-link:hover .roots {
+  filter: url(#rootHalo);
 }
