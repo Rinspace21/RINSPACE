@@ -47,6 +47,22 @@
     document.querySelector(".rock").addEventListener("click", function () {
       document.body.classList.add("revealed");
     });
+    // Click the sky: the camera tilts up into the light, then go to Abundance
+    document.querySelector(".sky").addEventListener("click", function (event) {
+      event.preventDefault();
+      document.body.classList.add("look-up");
+            setTimeout(function () {
+        document.body.classList.add("eye-close");
+      }, 2000);
+      setTimeout(function () {
+        window.location.href = "abundance.html";
+      }, 3000);
+    });
+
+    // Coming back with the Back button: look down again
+    window.addEventListener("pageshow", function () {
+          document.body.classList.remove("look-up", "eye-close");
+        });  
   </script>
 </body>
 </html>

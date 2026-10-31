@@ -464,3 +464,17 @@ height: 200vh;
     letter-spacing: 1px;
   }
 }
+
+/* The eye closes before leaving a page */
+.eye-close .eyelid {
+  animation: eyelid-close 1s ease-out forwards;
+}
+
+@keyframes eyelid-close {
+  0% {
+    height: 200vh;
+  }
+  100% {
+    height: 0;
+  }
+}

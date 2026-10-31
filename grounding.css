@@ -148,3 +148,26 @@ body::before {
     bottom: calc(20px + 160px);
   }
 }
+
+/* Click the sky: the camera tilts up the trees into the light */
+body::before {
+  transition: background-position 2s ease-in-out, transform 2s ease-in-out;
+  transform-origin: center top;
+}
+
+.look-up::before {
+  background-position: center top;
+}
+
+.look-up .photo-row,
+.look-up .rock {
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+
+/* Phones: most of the photo already shows, so zoom gently toward the sun */
+@media (max-width: 600px) {
+  .look-up::before {
+    transform: scale(1.25);
+  }
+}
