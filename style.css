@@ -439,3 +439,28 @@ height: 200vh;
   
 }
 }
+
+/* Way back home: "Rinspace" in the top-left of the top band */
+.home {
+  position: absolute;
+  left: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #b39867;
+  text-decoration: none;
+  font-size: 18px;
+  letter-spacing: 2px;
+    z-index: 2;
+}
+
+.home:hover {
+  color: #fff3c4;
+}
+
+@media (max-width: 600px) {
+  .home {
+    left: 16px;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+}

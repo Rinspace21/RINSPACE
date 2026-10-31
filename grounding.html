@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rinspace · Grounding</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="grounding.css">
+</head>
+<body>
+  <div class="eyelid"></div>
+
+  <!-- Menu bar inside the top band. Hidden until the rock is clicked. -->
+  <div class="top-band">
+        <a href="index.html" class="home">Rinspace</a>
+    <nav class="menu">
+      <span>Sweaters</span>
+      <span>Flannels</span>
+      <span>Beanies</span>
+      <span>Scarves</span>
+    </nav>
+  </div>
+
+  <!-- The sky: the door to Abundance. It only opens after the rock is clicked. -->
+  <a href="abundance.html" class="sky" aria-label="The sky"></a>
+
+  <h1>Grounding</h1>
+
+  <!-- The rock. Click it to reveal the clothes and the menu bar. Placeholder until Rin draws the real one. -->
+  <button class="rock" aria-label="The rock">
+    <svg viewBox="0 0 120 70">
+      <ellipse cx="60" cy="62" rx="52" ry="7" fill="rgba(0, 0, 0, 0.45)" />
+      <path d="M10 60 C6 44 18 26 38 20 C52 10 74 10 88 22 C104 30 114 46 108 60 Z" fill="#6f6a60" />
+      <path d="M30 28 C44 18 66 16 80 24 C66 22 48 24 36 34 Z" fill="#a39d8f" opacity="0.7" />
+    </svg>
+  </button>
+
+  <!-- The first set of clothes. Hidden until the rock is clicked. -->
+  <div class="photo-row">
+    <div class="photo-spot">Photo coming soon</div>
+    <div class="photo-spot">Photo coming soon</div>
+    <div class="photo-spot">Photo coming soon</div>
+  </div>
+
+  <script>
+    // Click the rock: show the clothes and the menu bar
+    document.querySelector(".rock").addEventListener("click", function () {
+      document.body.classList.add("revealed");
+    });
+  </script>
+</body>
+</html>

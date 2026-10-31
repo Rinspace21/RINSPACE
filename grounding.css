@@ -1,0 +1,150 @@
+/* Grounding page */
+
+/* Your pine photo fills the screen, lined up from the bottom so the ground shows */
+body::before {
+  background: url("grounding-bg.jpg") center 70% / cover;
+  bottom: 0;
+  filter: brightness(0.75);
+}
+
+/* Menu bar in the top band: hidden at first */
+.menu {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  font-size: 18px;
+  letter-spacing: 2px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 1s, transform 1s;
+}
+
+.menu span {
+  cursor: pointer;
+}
+
+.menu span:hover {
+  color: #fff3c4;
+}
+
+/* The rock sits on the ground */
+.rock {
+  position: fixed;
+  left: 50%;
+  bottom: 14vh;
+  transform: translateX(-50%);
+  width: 100px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: filter 0.4s, bottom 1s;
+}
+
+.rock svg {
+  max-width: none;
+  margin: 0;
+}
+
+.rock:hover {
+  filter: drop-shadow(0 0 10px rgba(255, 243, 196, 0.8));
+}
+
+/* The clothes: hidden below the screen at first */
+.photo-row {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 120%);
+  display: flex;
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(12, 9, 7, 0.55);
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 1s, transform 1s;
+}
+
+.photo-spot {
+  width: 110px;
+  aspect-ratio: 3 / 4;
+  border: 1px dashed rgba(179, 152, 103, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* The sky: a see-through area across the top. Asleep until the rock is clicked, then it glows.
+   Later, after the shop is set up: it should only wake up after Grounding is bought. */
+.sky {
+  position: fixed;
+  top: 12vh;
+  left: 0;
+  right: 0;
+  height: 30vh;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 243, 196, 0.45), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+
+.revealed .sky {
+  pointer-events: auto;
+  cursor: pointer;
+  animation: sky-glow 4s ease-in-out 1s infinite;
+}
+
+.revealed .sky:hover {
+  animation: none;
+  opacity: 1;
+}
+
+/* The sky breathes with soft light */
+@keyframes sky-glow {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* After the rock is clicked: menu and clothes rise in, rock moves up out of the way */
+.revealed .menu {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.revealed .photo-row {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.revealed .rock {
+  bottom: calc(20px + 200px);
+}
+
+/* Phones: smaller menu and photo spots */
+@media (max-width: 600px) {
+    .menu {
+    justify-content: flex-end;
+    padding-right: 16px;
+    gap: 12px;
+    font-size: 13px;
+    letter-spacing: 0;
+  }
+
+  .photo-spot {
+    width: 80px;
+    font-size: 11px;
+  }
+
+  .revealed .rock {
+    bottom: calc(20px + 160px);
+  }
+}
