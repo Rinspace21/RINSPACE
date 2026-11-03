@@ -1,0 +1,235 @@
+/* Abundance page: inside the mind, which feels like space */
+
+/* Hide the homepage's room photo; space is drawn below instead */
+body::before {
+  display: none;
+}
+
+body {
+  background: #020307;
+  overflow: hidden;
+}
+
+/* Deep space: blue-black, a little lighter in the middle */
+.space {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 55%, #0d1430 0%, #060914 50%, #020307 100%);
+  opacity: 0;
+  animation: fade-in 2s ease-in 0.5s forwards;
+}
+
+/* Behind the eyelid: a dim warm red that fades as space appears */
+.behind-lid {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(120, 40, 25, 0.55), rgba(40, 10, 8, 0.8) 60%, #050202 100%);
+  pointer-events: none;
+  z-index: 2;
+  animation: lid-fade 3s ease-in-out forwards;
+}
+
+@keyframes lid-fade {
+  0% { opacity: 1; }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+@keyframes fade-in {
+  to { opacity: 1; }
+}
+
+/* The two star layers fill the screen */
+svg.sky,
+svg.mind {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+}
+
+svg.mind {
+  pointer-events: none;
+}
+
+/* Your plant's lines stay hidden; they only guide where the stars go */
+svg.plant-lines {
+  position: absolute;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+}
+
+/* Background stars: fade in, drift like thoughts, pulse */
+.sky circle {
+  fill: #fff6dc;
+  opacity: 0;
+  animation: star-in 3s ease-in forwards, drift var(--drift) ease-in-out infinite alternate, pulse var(--pulse) ease-in-out infinite;
+}
+
+@keyframes star-in {
+  to { opacity: var(--bright); }
+}
+
+@keyframes drift {
+  to { transform: translate(var(--x), var(--y)); }
+}
+
+@keyframes pulse {
+  50% { filter: brightness(0.1); }
+}
+
+/* The constellation */
+.mind circle {
+  fill: #fff3c4;
+  opacity: 0;
+  animation: star-in 1.2s ease-out forwards, twinkle 4s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  50% { r: 0.6; }
+}
+
+.mind .line {
+  fill: none;
+  stroke: #ffe9b0;
+  stroke-width: 1;
+  opacity: 0;
+  animation: line-in 5s ease-in 5s forwards;
+}
+
+@keyframes line-in {
+  to { opacity: 0.12; }
+}
+
+/* Title and hint */
+h1 {
+  position: fixed;
+  top: 12vh;
+  left: 40px;
+  margin: 30px 0 0;
+  font-weight: normal;
+  opacity: 0;
+  animation: fade-in 3s ease-out 3s forwards;
+  z-index: 3;
+}
+
+.hint {
+  position: fixed;
+  top: calc(12vh + 95px);
+  left: 44px;
+  margin: 0;
+  font-size: 15px;
+  opacity: 0;
+  animation: fade-in 2s ease 12s forwards;
+  z-index: 3;
+}
+
+/* The embrace: warm light closing in from every edge */
+.embrace {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 0 rgba(255, 217, 138, 0);
+  transition: box-shadow 3s ease-out;
+  z-index: 1;
+}
+
+.held .embrace {
+  box-shadow: inset 0 0 18vmin 6vmin rgba(255, 200, 120, 0.35), inset 0 0 50vmin 10vmin rgba(255, 180, 110, 0.12);
+}
+
+.held .hint {
+  animation: none;
+  opacity: 0;
+  transition: opacity 1s;
+}
+
+/* Menu bar in the top band: hidden at first */
+.menu {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  font-size: 18px;
+  letter-spacing: 2px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 1s, transform 1s;
+}
+
+.menu span {
+  cursor: pointer;
+}
+
+.menu span:hover {
+  color: #fff3c4;
+}
+
+/* The clothes: hidden below the screen at first */
+.photo-row {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 120%);
+  display: flex;
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(12, 9, 7, 0.55);
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 1.5s 1s, transform 1.5s 1s;
+  z-index: 4;
+}
+
+.photo-spot {
+  width: 110px;
+  aspect-ratio: 3 / 4;
+  border: 1px dashed rgba(179, 152, 103, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* After the dark is tapped: menu and clothes rise in */
+.held .menu {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.held .photo-row {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Phones */
+@media (max-width: 600px) {
+  .menu {
+    justify-content: flex-end;
+    padding-right: 16px;
+    gap: 12px;
+    font-size: 13px;
+    letter-spacing: 0;
+  }
+
+  h1 {
+    left: 16px;
+    font-size: 34px;
+  }
+
+  .hint {
+    left: 18px;
+    top: calc(12vh + 75px);
+  }
+
+  .photo-spot {
+    width: 80px;
+    font-size: 11px;
+  }
+}
