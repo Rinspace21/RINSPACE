@@ -513,8 +513,10 @@ svg.mind {
 .bolt.glow { stroke: var(--beam); stroke-opacity: 0.4; stroke-width: 4; }
 .bolt.hot  { stroke: #f2ffff; stroke-width: 1.1; }
 
-/* The sparkler's sparks */
-.ember { stroke: #f2ffff; stroke-width: 0.9; stroke-linecap: round; }
+/* The plasma wisps: a soft glow with a bright thread inside */
+.wisp path { fill: none; stroke-linecap: round; }
+.wisp-glow { stroke: var(--beam); stroke-opacity: 0.25; }
+.wisp-core { stroke: #e6fdff; stroke-width: 0.7; stroke-opacity: 0.8; }
 
 /* The light crackles and breathes while it travels */
 .surging .trail.wide { animation: crackle-wide 0.18s ease-in-out infinite alternate; }
@@ -592,7 +594,7 @@ svg.mind {
 
 .embrace {
   transform-origin: 50% 100%;
-  transition: opacity 3s ease-out, transform 1.6s cubic-bezier(0.5, 0, 0.3, 1), filter 0.8s ease-out;
+  transition: opacity 3s ease-out, transform 1.6s cubic-bezier(0.5, 0, 0.3, 1);
 }
 
 .panning .space,
@@ -602,27 +604,17 @@ svg.mind {
   transform: scale(2.2);
 }
 
-/* As the spark comes in, the earth gets loud... */
-.flaring .embrace {
-  -webkit-filter: brightness(2.2) saturate(1.4);
-  filter: brightness(2.2) saturate(1.4);
-}
-
-/* ...and bright light floods the whole screen */
+/* The landing light: the code raises --flood from 0 to 1 so it swells in smoothly */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   background: radial-gradient(ellipse at 50% 100%, #ffffff 0%, #e6fdff 35%, #7aeaff 70%, #22c8f0 100%);
-  opacity: 0;
+  opacity: var(--flood, 0);
   pointer-events: none;
   z-index: 20;
-  transition: opacity 1.2s ease-in 0.3s;
 }
 
-.landed::after {
-  opacity: 1;
-}
 
 /* Once it lands, the spark is gone into the earth */
 .landed .surge {
@@ -634,3 +626,14 @@ body::after {
 .arrow { opacity: 0; }
 .arrow-glow { fill: var(--beam); fill-opacity: 0.35; }
 .arrow-head { fill: #f2ffff; }
+
+/* The comet's tail: a soft cyan glow with a white-hot core */
+.comet-glow { fill: var(--beam); fill-opacity: 0.35; opacity: 0; }
+.comet-core { fill: #eaffff; fill-opacity: 0.9; opacity: 0; transform-box: fill-box; transform-origin: center; }
+
+/* The plasma from the top: a bright cyan core inside a soft blue glow */
+.strike { fill: #b8f9ff; }
+.strike-glow { fill: var(--beam); fill-opacity: 0.35; }
+
+/* During the surge the plant and the lightning come in front of the top band */
+.surging svg.mind { z-index: 6; }

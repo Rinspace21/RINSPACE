@@ -273,6 +273,11 @@
     var drop = endY - 520;
     var beamRoute = " C252 " + (520 + drop * 0.25) + " 270 " + (520 + drop * 0.35) + " 265 " + (520 + drop * 0.55) +
                     " C260 " + (520 + drop * 0.75) + " 246 " + (520 + drop * 0.85) + " 252 " + endY;  // the beam sways on its way down
+
+    // the light first falls in from the top of the screen to the tip of the top leaf
+    var entryPoint = mind.createSVGPoint();
+    entryPoint.y = -10;
+    var topY = entryPoint.matrixTransform(mind.getScreenCTM().inverse()).y - 20;
     var surge = document.createElementNS(NS, "g");
     surge.setAttribute("transform", "translate(425 20)");
     surge.setAttribute("class", "surge");
@@ -283,9 +288,12 @@
       '<path class="trail wide" data-len="45" d="' + surgeRoute + beamRoute + '"/>' +
       '<polyline class="bolt glow"/>' +                   // the energy: a crackling electric line
       '<polyline class="bolt hot"/>' +
-      '<g class="embers"></g>' +                           // the sparkler's flying sparks
-      '<g class="arrow"><path class="arrow-glow" d="M0 6 C2 4 4 -4 5 -14 C3 -7 1.5 -4 0 -3 C-1.5 -4 -3 -7 -5 -14 C-4 -4 -2 4 0 6 Z" transform="scale(1.4)"/>' +
-      '<path class="arrow-head" d="M0 6 C2 4 4 -4 5 -14 C3 -7 1.5 -4 0 -3 C-1.5 -4 -3 -7 -5 -14 C-4 -4 -2 4 0 6 Z"/></g>' +   // the head: a sharp curved arrow, forced through space
+      '<g class="embers"></g>' +                           // the plasma wisps
+      '<path class="comet-glow"/><path class="comet-core"/>' +   // the comet's tail
+      '<path class="strike-glow s1"/><path class="strike s1"/>' +   // lightning from the sky to the leaf tip
+      '<path class="strike-glow s2"/><path class="strike s2"/>' +   // lightning from the plant into the earth
+      '<g class="arrow"><path class="arrow-glow" d="M0 3.5 C2 3.5 2.6 1 2.2 -1 L0 -9 L-2.2 -1 C-2.6 1 -2 3.5 0 3.5 Z" transform="scale(1.8)"/>' +
+      '<path class="arrow-head" d="M0 3.5 C2 3.5 2.6 1 2.2 -1 L0 -9 L-2.2 -1 C-2.6 1 -2 3.5 0 3.5 Z"/></g>' +   // the comet's head
       '<circle class="spark core" r="2.2"/>';
     mind.appendChild(surge);
 
@@ -293,6 +301,73 @@
     var sparks = surge.querySelectorAll(".spark");
     var bolts = surge.querySelectorAll(".bolt");
     var arrow = surge.querySelector(".arrow");
+    var comet = [surge.querySelector(".comet-glow"), surge.querySelector(".comet-core")];
+
+    // Lightning: a zigzag of sharp corners, big zags near the start and tighter ones further down
+    function makeStrike(ax, ay, bx, by, segments, wild) {
+      var pts = [[ax, ay]], side = Math.random() < 0.5 ? -1 : 1;
+      for (var i = 1; i < segments; i++) {
+        var u = (i + (Math.random() - 0.5) * 0.7) / segments;   // uneven lengths, like a real bolt
+        if (Math.random() < 0.75) side = -side;
+        var zag = side * wild * (0.4 + Math.random() * 0.6) * (1 - u * 0.75);
+        pts.push([ax + (bx - ax) * u + zag, ay + (by - ay) * u + (Math.random() - 0.5) * 4]);
+      }
+      pts.push([bx, by]);
+      return pts;
+    }
+
+    // Draw it as one flat white shape: sharp point at each end, a little wider in the middle
+    function drawStrike(cls, pts, grow, width, alpha) {
+      var n = pts.length - 1, upto = grow * n, line = [];
+      for (var i = 0; i <= n && i <= upto; i++) {             // plasma: every corner trembles a little each frame
+        var j = i == 0 || i == n ? 0 : 2.5;
+        line.push([pts[i][0] + (Math.random() - 0.5) * j, pts[i][1] + (Math.random() - 0.5) * j]);
+      }
+      if (upto < n) {
+        var f = upto - Math.floor(upto), a = pts[Math.floor(upto)], b = pts[Math.floor(upto) + 1];
+        line.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+      }
+      var shapes = surge.querySelectorAll("." + cls);
+      [3, 1].forEach(function (size, k) {                  // the glow is wider, the bolt itself is solid white
+        var left = [], right = [];
+        line.forEach(function (p, i) {
+          var prev = line[Math.max(0, i - 1)], next = line[Math.min(line.length - 1, i + 1)];
+          var nx = -(next[1] - prev[1]), ny = next[0] - prev[0], nl = Math.sqrt(nx * nx + ny * ny) || 1;
+          var u = i / n;
+          var w = width * size * Math.pow(Math.sin(Math.PI * Math.min(u, 1)), 0.6) * (0.7 + 0.6 * ((i * 7) % 3) / 2);
+          left.push((p[0] + nx / nl * w) + " " + (p[1] + ny / nl * w));
+          right.unshift((p[0] - nx / nl * w) + " " + (p[1] - ny / nl * w));
+        });
+        shapes[k].setAttribute("d", line.length > 1 ? "M" + left.join(" L") + " L" + right.join(" L") + " Z" : "");
+        shapes[k].style.opacity = alpha;
+      });
+    }
+
+    // How bright a strike is, by how long ago it started: draw, hold, flicker, fade
+    function strikeAlpha(s, fadeAt) {
+      if (s < 0) return 0;
+      if (s > 0.55 && s < 0.65) return 0.3;
+      if (s < fadeAt) return 1;
+      return Math.max(0, 1 - (s - fadeAt) / 0.5);
+    }
+    var strike1 = null, strike2 = null;
+
+    // The comet's tail: a smooth shape that is widest at the head and tapers to a point behind it
+    function drawComet(done, length, width) {
+      [[2.2, 1], [0.6, 0.7]].forEach(function (size, k) {     // the glow is wide and long, the core thin and shorter
+        var left = [], right = [];
+        for (var i = 0; i <= 20; i++) {
+          var d = Math.max(0, done - length * size[1] * i / 20);
+          var p = trails[0].getPointAtLength(d);
+          var q = trails[0].getPointAtLength(Math.max(0, d - 2));
+          var nx = -(p.y - q.y), ny = p.x - q.x, nl = Math.sqrt(nx * nx + ny * ny) || 1;
+          var w = width * size[0] * Math.pow(1 - i / 20, 1.3);
+          left.push((p.x + nx / nl * w) + " " + (p.y + ny / nl * w));
+          right.unshift((p.x - nx / nl * w) + " " + (p.y - ny / nl * w));
+        }
+        comet[k].setAttribute("d", "M" + left.join(" L") + " L" + right.join(" L") + " Z");
+      });
+    }
     var emberBox = surge.querySelector(".embers");
     var embers = [];
 
@@ -309,22 +384,32 @@
       bolts.forEach(function (b) { b.setAttribute("points", pts.join(" ")); });
     }
 
-    // The sparkler: tiny streaks fly off the spark, fall a little, and burn out
-    function sparkle(x, y, howMany) {
+    // The plasma: soft wisps peel off the light, curl away behind it, and dissolve
+    function plasma(x, y, dx, dy, howMany) {
       for (var i = 0; i < howMany; i++) {
-        var e = document.createElementNS(NS, "line");
-        e.setAttribute("class", "ember");
-        var angle = Math.random() * Math.PI * 2, speed = 0.6 + Math.random() * 2.4;
-        var life = 14 + Math.random() * 22;
-        embers.push({ el: e, x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: life, max: life });
-        emberBox.appendChild(e);
+        var g = document.createElementNS(NS, "g");
+        g.setAttribute("class", "wisp");
+        g.innerHTML = '<path class="wisp-glow"/><path class="wisp-core"/>';
+        var life = 14 + Math.random() * 12;
+        embers.push({ el: g, paths: g.querySelectorAll("path"), x: x + (Math.random() - 0.5) * 3, y: y + (Math.random() - 0.5) * 3,
+          bx: -dx, by: -dy, sx: -dy, sy: dx, curl: (Math.random() - 0.5) * 2.4, len: 3, life: life, max: life });
+        emberBox.appendChild(g);
       }
       embers = embers.filter(function (m) {
-        m.x += m.vx; m.y += m.vy; m.vy += 0.07; m.life--;
+        m.life--;
         if (m.life <= 0) { m.el.remove(); return false; }
-        m.el.setAttribute("x1", m.x); m.el.setAttribute("y1", m.y);
-        m.el.setAttribute("x2", m.x - m.vx * 3); m.el.setAttribute("y2", m.y - m.vy * 3);
-        m.el.style.opacity = m.life / m.max;
+        m.len += 0.3;                                              // it stretches out a little
+        m.x += m.bx * 0.35 + m.sx * m.curl * 0.25;                 // and drifts back and to the side
+        m.y += m.by * 0.35 + m.sy * m.curl * 0.25;
+        var cx = m.x + m.bx * m.len * 0.5 + m.sx * m.curl * m.len * 0.6;
+        var cy = m.y + m.by * m.len * 0.5 + m.sy * m.curl * m.len * 0.6;
+        var ex = m.x + m.bx * m.len + m.sx * m.curl * m.len * 0.15;
+        var ey = m.y + m.by * m.len + m.sy * m.curl * m.len * 0.15;
+        var d = "M" + m.x + " " + m.y + " Q" + cx + " " + cy + " " + ex + " " + ey;
+        m.paths.forEach(function (p) { p.setAttribute("d", d); });
+        var fade = m.life / m.max;
+        m.el.style.opacity = fade * 0.5;
+        m.paths[0].style.strokeWidth = 1.5 + (1 - fade) * 3;        // it swells softly as it fades
         return true;
       });
     }
@@ -338,33 +423,59 @@
     door.className = "earth-door";
     document.body.appendChild(door);
     var surging = false;
+    var embrace = document.querySelector(".embrace");
+    function smooth(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }   // eases in and out
 
     door.addEventListener("click", function () {
       if (surging || dragMoved) return;
       surging = true;
       document.body.classList.add("surging");
       var start = null;
+
+      // The stars: each one lets go and falls toward the earth once the light passes it
+      var fallers = [];
+      document.querySelectorAll("#stars circle").forEach(function (s) {
+        fallers.push({ el: s, y: parseFloat(s.getAttribute("cy")), screenY: s.getBoundingClientRect().top, v: 0, g: 0.12 });
+      });
+      document.querySelectorAll("#sky circle").forEach(function (s) {
+        fallers.push({ el: s, y: parseFloat(s.getAttribute("cy")) / 100 * window.innerHeight, screenY: s.getBoundingClientRect().top, v: 0, g: 0.18 });
+      });
+      var tipPoint = mind.createSVGPoint();
+      tipPoint.x = 299 + 425; tipPoint.y = 87 + 20;
+      var tipY = tipPoint.matrixTransform(mind.getScreenCTM()).y;
       function run(now) {
         if (!start) start = now;
         var t = (now - start) / 1000;
         var done;
-        if (t < 0.8) done = 0;                                    // the light gathers at the tip
-        else if (t < 3.3) { var k = (t - 0.8) / 2.5; done = plantLength * k * k; }  // speeds up like a surge
-        else {                                                    // the beam: the light lets go of the plant
-          var b = Math.min(1, (t - 3.3) / 1.3);                   // and travels down as one pulse, like
-          done = plantLength + (full - plantLength) * b * b;      // something being sent to the earth
-          if (b > 0.45) document.body.classList.add("flaring");    // the earth gets loud while the spark is still coming in
-          var behind = trails[0].getPointAtLength(Math.max(0, done - 4));
-          var ahead = trails[0].getPointAtLength(done);
-          var angle = Math.atan2(ahead.y - behind.y, ahead.x - behind.x) * 180 / Math.PI;
-          arrow.setAttribute("transform", "translate(" + ahead.x + " " + ahead.y + ") rotate(" + (angle - 90) + ") scale(" + (0.5 + 0.6 * b) + ")");
-          arrow.style.opacity = Math.min(1, b * 5);
-        }
-        if (t > 3.1) document.body.classList.add("panning");     // the camera moves down to the earth
+        // 1. lightning strikes from the top of the screen down to the tip of the top leaf
+        if (!strike1) strike1 = makeStrike(312, topY, 299, 87, 6, 22);
+        drawStrike("s1", strike1, Math.min(1, t / 0.3), 1.4, strikeAlpha(t, 0.85));
+        // 2. the energy it leaves runs down the leaf and the stem, speeding up
+        if (t < 0.6) done = 0;
+        else if (t < 3.1) { var k = (t - 0.6) / 2.5; done = plantLength * k * k; }
+        else done = plantLength;
+        var lit = t > 0.3 ? Math.max(0, Math.min(1, 1 - (t - 3.1) * 3)) : 0;
+        sparks[0].style.opacity = lit;
+        bolts.forEach(function (s) { s.style.opacity = lit; });
+        trails.forEach(function (s) { s.style.opacity = lit; });
+
+        // 3. from the end of the plant, lightning strikes down into the earth
+        if (!strike2) strike2 = makeStrike(252, 520, 252, endY, 5, 10);
+        drawStrike("s2", strike2, Math.min(1, Math.max(0, (t - 3.1) / 0.25)), 2.4, strikeAlpha(t - 3.1, 1.3));
+
+        if (t > 3.0) document.body.classList.add("panning");     // the camera moves down to the earth
+
+        // the landing: the earth slowly gets loud, then the light rises and fills the screen, all in one smooth swell
+        var loud = smooth((t - 3.3) / 1.2);
+        embrace.style.webkitFilter = embrace.style.filter = "brightness(" + (1 + 1.2 * loud) + ") saturate(" + (1 + 0.4 * loud) + ")";
+        document.body.style.setProperty("--flood", smooth((t - 3.7) / 2.0));
+        if (t > 3.7) document.body.classList.add("landed");
         var at = trails[0].getPointAtLength(done);
         sparks.forEach(function (s) { s.setAttribute("cx", at.x); s.setAttribute("cy", at.y); });
         drawBolt(done);
-        sparkle(at.x, at.y, t < 0.3 ? 0 : (t > 3.3 ? 10 : 5));   // more sparks fly as it pushes into the earth
+        var back = trails[0].getPointAtLength(Math.max(0, done - 3));
+        var dx = at.x - back.x, dy = at.y - back.y, dl = Math.sqrt(dx * dx + dy * dy) || 1;
+        plasma(at.x, at.y, dx / dl, dy / dl, t < 0.35 || t > 3.1 ? 0 : 1);   // a little plasma peels off as it goes
         trails.forEach(function (tr) {                            // each layer only lights its stretch behind the spark
           var tail = Math.max(0, done - tr.getAttribute("data-len"));
           tr.style.strokeDasharray = (done - tail) + " " + full * 2;
@@ -375,13 +486,21 @@
         var lightY = sparks[0].getBoundingClientRect().top + sparks[0].getBoundingClientRect().height / 2;
         cards.forEach(function (card) {
           var box = card.getBoundingClientRect();
-          if (t > 0.8 && lightY > box.top + box.height / 2) card.classList.add("gone");
+          if (t > 0.9 && lightY > box.top + box.height / 2) card.classList.add("gone");
         });
-        if (t < 4.6) requestAnimationFrame(run);
-        else {
-          document.body.classList.add("landed");                  // loud light fills the screen, then the next page
-          setTimeout(function () { if (nextPage) window.location.href = nextPage; }, 1800);
-        }
+
+        var fallLine = t < 0.3 ? tipY * t / 0.3 : (t < 3.1 ? lightY : 100000);
+        fallers.forEach(function (f) {
+          if (f.at == null && f.screenY < fallLine) f.at = t + Math.random() * 0.4;
+          if (f.at == null || t < f.at) return;
+          if (!f.falling) { f.falling = true; f.el.style.animation = "none"; }
+          f.v += f.g;                                             // it speeds up as it falls
+          f.y += f.v;
+          f.el.setAttribute("cy", f.y);
+          f.el.style.opacity = Math.max(0, 1 - (t - f.at) / 1.6);
+        });
+        if (t < 5.9) requestAnimationFrame(run);
+        else if (nextPage) window.location.href = nextPage;       // the screen is full of light: on to the next page
       }
       requestAnimationFrame(run);
     });
