@@ -78,8 +78,7 @@ svg.plant-lines {
 }
 
 @keyframes pulse {
-    50% { fill-opacity: 0.1; }
-
+  50% { fill-opacity: 0.1; }
 }
 
 /* The constellation */
@@ -87,8 +86,8 @@ svg.plant-lines {
   fill: #fff3c4;
   opacity: 0;
   animation: star-in 1.2s ease-out forwards, twinkle 4s ease-in-out infinite;
-   transform-box: fill-box;
-  transform-origin: center; 
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .mind circle:nth-child(3n) {
@@ -123,7 +122,7 @@ h1 {
   left: 40px;
   margin: 30px 0 0;
   font-weight: normal;
-    color: #e0fdff;
+  color: #e0fdff;
   text-shadow: 0 0 4px #fff, 0 0 10px #3ff4ff, 0 0 22px #00e1ff, 0 0 45px #00c3ff, 0 0 80px #0099ff, 12px -9px 1px rgba(255, 50, 80, 0.75), 13px -10px 22px rgba(255, 30, 60, 0.6);
   opacity: 0;
   animation: fade-in 3s ease-out 3s forwards, vibrate-title 4s 6s infinite;
@@ -251,6 +250,7 @@ h1 {
     font-size: 11px;
   }
 }
+
 /* "Rinspace" link home: soft cyan on this page */
 .home {
   color: #8ff3ff;
@@ -309,3 +309,328 @@ h1 {
   0%, 100% { opacity: 0; }
   50% { opacity: 1; }
 }
+
+/* The clothes: four display screens dancing around your plant */
+
+/* The plant's stars sit between the back screens and the front screens */
+svg.mind {
+  z-index: 2;
+}
+
+.card {
+  position: fixed;
+  left: 50.5%;
+  top: 55%;
+  width: 140px;
+  height: 250px;
+  opacity: 0;
+  will-change: transform;
+}
+
+/* 3 seconds after the tap the screens show up... */
+.held .card {
+  opacity: 1;
+  transition: opacity 0s 3s;
+}
+
+/* Swiping anywhere on the page turns the dial (phones too) */
+.held {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.face {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  color: #c9f8ff;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.14) 0%, transparent 35%),
+    repeating-linear-gradient(0deg, rgba(120, 235, 255, 0.06) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 40%, rgba(0, 120, 170, 0.35), rgba(4, 12, 28, 0.85));
+  border: 2px solid rgba(120, 235, 255, 0.6);
+  border-radius: 10px;
+  box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), inset 0 0 20px rgba(0, 210, 255, 0.12);
+  cursor: grab;
+  transition: box-shadow 0.4s, opacity 0.4s, filter 0.4s;
+}
+
+/* ...vibrating in with cyan echoes like the title, then floating */
+.held .face {
+  animation: vibrate-in 1.8s linear 3s backwards, dance 3.2s ease-in-out infinite alternate;
+}
+
+/* Each screen floats at its own rhythm */
+.held .c2 .face { animation-duration: 1.8s, 3.6s; animation-delay: 3s, -1s; }
+.held .c3 .face { animation-duration: 1.8s, 2.9s; animation-delay: 3s, -2s; }
+.held .c4 .face { animation-duration: 1.8s, 3.4s; animation-delay: 3s, -0.5s; }
+
+@keyframes vibrate-in {
+  0% {
+    -webkit-filter: blur(8px);
+    filter: blur(8px);
+    opacity: 0;
+    translate: -8px 0;
+  }
+  6% {
+    -webkit-filter: blur(5px);
+    filter: blur(5px);
+    opacity: 0.8;
+    translate: 7px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -5px 0 4px rgba(0, 225, 255, 0.9), 5px 0 4px rgba(0, 225, 255, 0.9), -10px 0 8px rgba(0, 225, 255, 0.45), 10px 0 8px rgba(0, 225, 255, 0.45);
+  }
+  12% {
+    -webkit-filter: blur(6px);
+    filter: blur(6px);
+    opacity: 0.2;
+    translate: -6px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -3px 0 4px rgba(0, 225, 255, 0.6), 3px 0 4px rgba(0, 225, 255, 0.6), -6px 0 8px rgba(0, 225, 255, 0.3), 6px 0 8px rgba(0, 225, 255, 0.3);
+  }
+  18% {
+    -webkit-filter: blur(4px);
+    filter: blur(4px);
+    opacity: 0.9;
+    translate: 6px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -8px 0 5px rgba(0, 225, 255, 0.85), 8px 0 5px rgba(0, 225, 255, 0.85), -16px 0 9px rgba(0, 225, 255, 0.42), 16px 0 9px rgba(0, 225, 255, 0.42);
+  }
+  25% {
+    -webkit-filter: blur(5px);
+    filter: blur(5px);
+    opacity: 0.3;
+    translate: -5px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -4px 0 4px rgba(0, 225, 255, 0.7), 4px 0 4px rgba(0, 225, 255, 0.7), -8px 0 8px rgba(0, 225, 255, 0.35), 8px 0 8px rgba(0, 225, 255, 0.35);
+  }
+  32% {
+    -webkit-filter: blur(3px);
+    filter: blur(3px);
+    opacity: 1;
+    translate: 5px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -11px 0 6px rgba(0, 225, 255, 0.75), 11px 0 6px rgba(0, 225, 255, 0.75), -22px 0 10px rgba(0, 225, 255, 0.38), 22px 0 10px rgba(0, 225, 255, 0.38);
+  }
+  40% {
+    -webkit-filter: blur(3.5px);
+    filter: blur(3.5px);
+    opacity: 0.5;
+    translate: -4px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -6px 0 5px rgba(0, 225, 255, 0.6), 6px 0 5px rgba(0, 225, 255, 0.6), -12px 0 9px rgba(0, 225, 255, 0.3), 12px 0 9px rgba(0, 225, 255, 0.3);
+  }
+  48% {
+    -webkit-filter: blur(2px);
+    filter: blur(2px);
+    opacity: 1;
+    translate: 3px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -14px 0 8px rgba(0, 225, 255, 0.6), 14px 0 8px rgba(0, 225, 255, 0.6), -28px 0 12px rgba(0, 225, 255, 0.3), 28px 0 12px rgba(0, 225, 255, 0.3);
+  }
+  56% {
+    -webkit-filter: blur(2.5px);
+    filter: blur(2.5px);
+    opacity: 0.7;
+    translate: -3px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -9px 0 6px rgba(0, 225, 255, 0.5), 9px 0 6px rgba(0, 225, 255, 0.5), -18px 0 10px rgba(0, 225, 255, 0.25), 18px 0 10px rgba(0, 225, 255, 0.25);
+  }
+  65% {
+    -webkit-filter: blur(1.2px);
+    filter: blur(1.2px);
+    opacity: 1;
+    translate: 2px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -16px 0 10px rgba(0, 225, 255, 0.4), 16px 0 10px rgba(0, 225, 255, 0.4), -32px 0 14px rgba(0, 225, 255, 0.2), 32px 0 14px rgba(0, 225, 255, 0.2);
+  }
+  75% {
+    -webkit-filter: blur(0.8px);
+    filter: blur(0.8px);
+    opacity: 1;
+    translate: -1px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -12px 0 10px rgba(0, 225, 255, 0.25), 12px 0 10px rgba(0, 225, 255, 0.25), -24px 0 14px rgba(0, 225, 255, 0.12), 24px 0 14px rgba(0, 225, 255, 0.12);
+  }
+  87% {
+    -webkit-filter: blur(0.3px);
+    filter: blur(0.3px);
+    opacity: 1;
+    translate: 1px 0;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.25), -18px 0 14px rgba(0, 225, 255, 0.12), 18px 0 14px rgba(0, 225, 255, 0.12), -36px 0 18px rgba(0, 225, 255, 0.06), 36px 0 18px rgba(0, 225, 255, 0.06);
+  }
+  100% {
+    -webkit-filter: blur(0px);
+    filter: blur(0px);
+    opacity: 1;
+    translate: 0px 0;
+  }
+}
+
+@keyframes dance {
+  from { transform: translateY(-8px) rotate(-1.5deg); }
+  to   { transform: translateY(8px) rotate(1.5deg); }
+}
+
+/* Screens behind the plant are dimmer, like they're further away */
+.card.back .face {
+  opacity: 0.35;
+  -webkit-filter: blur(1.5px);
+  filter: blur(1.5px);
+}
+
+.face:hover {
+  box-shadow: 0 0 30px rgba(0, 220, 255, 0.55), inset 0 0 26px rgba(0, 220, 255, 0.2);
+}
+
+@media (max-width: 600px) {
+  .card { width: 76px; height: 135px; top: 58%; }
+  .face { font-size: 10px; }
+}
+
+/* The surge: light from the leaf tip, down the stem, into the earth */
+.surge {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.surging .surge {
+  opacity: 1;
+}
+
+.trail {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The beam's color: change --beam to try another neon */
+.surge {
+  --beam: #3ff4ff;
+}
+
+.trail.ghost { stroke: var(--beam); stroke-opacity: 0.25; stroke-width: 0.8; }
+.trail.wide  { stroke: var(--beam); stroke-opacity: 0.18; stroke-width: 9; }
+
+/* The energy line: a glow and a white-hot center that crackle */
+.bolt { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.bolt.glow { stroke: var(--beam); stroke-opacity: 0.4; stroke-width: 4; }
+.bolt.hot  { stroke: #f2ffff; stroke-width: 1.1; }
+
+/* The sparkler's sparks */
+.ember { stroke: #f2ffff; stroke-width: 0.9; stroke-linecap: round; }
+
+/* The light crackles and breathes while it travels */
+.surging .trail.wide { animation: crackle-wide 0.18s ease-in-out infinite alternate; }
+
+@keyframes crackle-wide {
+  from { stroke-width: 6; stroke-opacity: 0.12; }
+  to   { stroke-width: 12; stroke-opacity: 0.24; }
+}
+
+
+.glow-1 { stop-color: #ffffff; }
+.glow-2 { stop-color: var(--beam); }
+.glow-3 { stop-color: var(--beam); stop-opacity: 0; }
+
+/* The light itself (not a star, so it skips the stars' twinkle) */
+.mind .surge .spark {
+  fill: url(#surge-glow);
+  opacity: 0;
+  animation: none;
+  transition: opacity 0.8s ease-out;
+}
+
+.surging .mind .surge .spark {
+  opacity: 1;
+}
+
+.mind .surge .spark.halo {
+  animation: spark-flicker 0.35s steps(1) infinite;
+}
+
+/* A small white-hot point in the middle */
+.mind .surge .spark.core {
+  fill: #ffffff;
+}
+
+/* The glow around it flickers like a spark, not a steady ball */
+@keyframes spark-flicker {
+  0%   { transform: scale(1);   opacity: 1; }
+  25%  { transform: scale(0.6); opacity: 0.6; }
+  50%  { transform: scale(1.3); opacity: 0.9; }
+  75%  { transform: scale(0.8); opacity: 0.7; }
+}
+
+/* Each screen fades and blurs away as the light passes it */
+.held .card.gone {
+  opacity: 0;
+  -webkit-filter: blur(6px);
+  filter: blur(6px);
+  transition: opacity 0.6s ease-out, filter 0.6s ease-out;
+}
+
+/* The glowing earth is the button */
+.earth-door {
+  position: fixed;
+  left: 15%;
+  right: 15%;
+  bottom: 0;
+  height: 18%;
+  z-index: 3;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.held .earth-door {
+  pointer-events: auto;
+}
+
+/* The camera moves down into the earth while the beam drops */
+.space,
+svg.sky,
+svg.mind {
+  transform-origin: 50% 100%;
+  transition: transform 1.6s cubic-bezier(0.5, 0, 0.3, 1);
+}
+
+.embrace {
+  transform-origin: 50% 100%;
+  transition: opacity 3s ease-out, transform 1.6s cubic-bezier(0.5, 0, 0.3, 1), filter 0.8s ease-out;
+}
+
+.panning .space,
+.panning svg.sky,
+.panning svg.mind,
+.panning .embrace {
+  transform: scale(2.2);
+}
+
+/* As the spark comes in, the earth gets loud... */
+.flaring .embrace {
+  -webkit-filter: brightness(2.2) saturate(1.4);
+  filter: brightness(2.2) saturate(1.4);
+}
+
+/* ...and bright light floods the whole screen */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, #ffffff 0%, #e6fdff 35%, #7aeaff 70%, #22c8f0 100%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+  transition: opacity 1.2s ease-in 0.3s;
+}
+
+.landed::after {
+  opacity: 1;
+}
+
+/* Once it lands, the spark is gone into the earth */
+.landed .surge {
+  opacity: 0;
+  transition: opacity 0.6s 0.6s;
+}
+
+/* The arrowhead: only shows once the light leaves the plant */
+.arrow { opacity: 0; }
+.arrow-glow { fill: var(--beam); fill-opacity: 0.35; }
+.arrow-head { fill: #f2ffff; }
