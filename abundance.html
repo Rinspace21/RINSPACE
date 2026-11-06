@@ -204,9 +204,33 @@
       stars.appendChild(group);
     });
 
-    // Tap the dark: the embrace, then the menu and clothes
+    // Tap the dark: the embrace, then the menu and clothes.
+    // If you tap while your plant is still appearing, the first tap makes it finish fast.
+    // Once it is complete, the next tap brings in the earth.
+    var logoDone = (3 + count * 0.04 + 1.2) * 1000;
+    var logoReady = false;
+    var hurried = false;
+    setTimeout(function () { logoReady = true; }, logoDone);
+    function hurryLogo() {
+      hurried = true;
+      var rate = Math.max(1, (logoDone - performance.now()) / 1500);   // finish in 1.5 seconds
+      document.getAnimations().forEach(function (a) {
+        if (a.animationName == "star-in" || a.animationName == "line-in") a.playbackRate = rate;
+      });
+      setTimeout(function () { logoReady = true; }, 1500);
+    }
     document.body.addEventListener("click", function () {
+      if (!logoReady) { if (!hurried) hurryLogo(); return; }
+      if (document.body.classList.contains("held")) return;
       document.body.classList.add("held");
+      history.pushState({ step: "earth" }, "");          // so the Back button returns to the logo
+    });
+
+    // Back button: from the earth back to the logo. Forward brings the earth back.
+    window.addEventListener("popstate", function () {
+      if (surging) { location.reload(); return; }        // mid-surge: start the page over
+      if (history.state && history.state.step == "earth") document.body.classList.add("held");
+      else document.body.classList.remove("held");
     });
 
     // The clothes dial: four screens on a circle around the plant.
@@ -450,6 +474,7 @@
         // 1. lightning strikes from the top of the screen down to the tip of the top leaf
         if (!strike1) strike1 = makeStrike(312, topY, 299, 87, 6, 22);
         drawStrike("s1", strike1, Math.min(1, t / 0.3), 1.4, strikeAlpha(t, 0.85));
+
         // 2. the energy it leaves runs down the leaf and the stem, speeding up
         if (t < 0.6) done = 0;
         else if (t < 3.1) { var k = (t - 0.6) / 2.5; done = plantLength * k * k; }
@@ -462,6 +487,7 @@
         // 3. from the end of the plant, lightning strikes down into the earth
         if (!strike2) strike2 = makeStrike(252, 520, 252, endY, Math.max(5, Math.round((endY - 520) / 12)), 10);
         drawStrike("s2", strike2, Math.min(1, Math.max(0, (t - 3.1) / 0.25)), 1.4, strikeAlpha(t - 3.1, 1.3));
+
         if (t > 3.0) document.body.classList.add("panning");     // the camera moves down to the earth
 
         // the landing: the earth slowly gets loud, then the light rises and fills the screen, all in one smooth swell
