@@ -233,6 +233,15 @@
       else document.body.classList.remove("held");
     });
 
+    // Coming back here with the Back button from the next page: go straight to the earth
+    if (history.state && history.state.step == "earth") {
+      document.body.classList.add("held");
+      requestAnimationFrame(function () { hurryLogo(); });   // your plant draws itself quickly, no need to wait
+    }
+    window.addEventListener("pageshow", function (e) {
+      if (e.persisted) location.reload();                   // Safari kept the old light-filled screen: start fresh, on the earth
+    });
+
     // The clothes dial: four screens on a circle around the plant.
     // Swipe left or right to turn it. When you let go it settles on the nearest screen.
     var cards = document.querySelectorAll(".card");
@@ -285,7 +294,7 @@
 
     // The surge: tap the glowing earth. A light appears at the tip of the top leaf,
     // runs down the leaf's curve and the stem, then shoots a beam into the earth.
-    var nextPage = "";   // put the next page's file name here, like "story3.html". Empty = stay on this page.
+    var nextPage = "reflection.html";   // put the next page's file name here, like "story3.html". Empty = stay on this page.
     var surgeRoute = "M299 87 C316 89 329 110 332 135 C335 160 335 186 325 200 C314 213 297 219 290 233 C285 246 284 262 283 280 L280 330 L279 400 C285 412 300 425 314 430 C326 434 330 445 318 455 C303 467 268 478 256 492 C252 497 252 505 252 520";
     var mind = document.querySelector("svg.mind");
 
@@ -525,7 +534,10 @@
           f.el.style.opacity = Math.max(0, 1 - (t - f.at) / 1.6);
         });
         if (t < 5.9) requestAnimationFrame(run);
-        else if (nextPage) window.location.href = nextPage;       // the screen is full of light: on to the next page
+        else if (nextPage) {                                      // the screen is full of light: on to the next page
+          history.replaceState({ step: "earth" }, "");          // so Back from the next page lands on the earth
+          window.location.href = nextPage;
+        }
       }
       requestAnimationFrame(run);
     });
