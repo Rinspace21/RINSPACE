@@ -9,12 +9,20 @@
 <body>
   <!-- The whole beach scene is drawn and moved on this canvas by the script below -->
   <canvas class="scene"></canvas>
+  <canvas class="spray"></canvas>  <!-- water running and dripping off the clothing panels, drawn in front of them -->
 
   <a href="index.html" class="home">Rinspace</a>
   <h1>Reflection</h1>
 
   <!-- The leaf is the link to the next page. The script keeps this invisible button sitting on top of the leaf. -->
   <a href="#" class="leaf-link" aria-label="The leaf"></a>
+  <a href="#" class="bolt-link" aria-label="The lightning: strike again"></a>
+
+  <!-- The Reflection clothes: screens that rise out of the water when the lightning is tapped. Swap in photos later. -->
+  <div class="rise" data-x="430" data-y="1300"><div class="dress"><div class="face">Photo coming soon</div></div></div>
+  <div class="rise" data-x="610" data-y="1360"><div class="dress"><div class="face">Photo coming soon</div></div></div>
+  <div class="rise" data-x="990" data-y="1360"><div class="dress"><div class="face">Photo coming soon</div></div></div>
+  <div class="rise" data-x="1170" data-y="1300"><div class="dress"><div class="face">Photo coming soon</div></div></div>
 
   <script>
     // ---------- Settings you can change ----------
@@ -34,7 +42,10 @@
     var CHAOS = 0;            // how thick the chaos fog around the light is (0 = none, 1 = thick)
     var FOG = 0.95;           // how thick the fog is after it clears (only in your marked areas)
     var FOG_BEFORE = 0.85;    // how thick the brain fog is before the lightning clears it
-    var CLEAR_AT = 13.5;        // seconds after arriving when the big lightning strike clears the fog
+    var CLEAR_AT = 6.3;        // seconds after arriving when the big lightning strike clears the fog (Nov 9, Rin: 3 s after the cyan light finishes fading at 3.3 s)
+    var PULSE_AT = 0;           // seconds after the lightning strike when the pulse blasts out (Rin: eye, lightning, pulse, cross)
+    var CROSS_AT = 1.5;         // seconds after the pulse when the cross starts to glow
+    var PULL_TIME = 2.4;        // seconds the fog is pulled in and circles the bolt before the strike
 
     // ---------- Your art (sizes are in pixels of reflection-bg.jpg) ----------
     var IW = 2421, IH = 1871;           // size of the background picture
@@ -43,7 +54,8 @@
     var SIDE = 335;                     // reflection-bg-wide.jpg adds this much on each side (computers show the whole wide picture)
     var HOR = 970;                      // the horizon: the split between sky and ocean
     var LIGHT_X = 790;                  // the lightning and its reflection
-    var FOCUS = [805, 520];             // the point on the lightning the fog is pulled toward
+    var FOCUS = [805, 520];
+    var EYE = [800, 560], EYE_R = 240, EYE_TALL = 1.35;   // (not used now)
     var LEAF_BASE = [1508, 1682];       // where the stem meets the sand
     var LEAF_AT = [1470, 1545];         // top-left corner of reflection-leaf.png
     var SHADOW_AT = [1495, 1660];       // top-left corner of reflection-shadow.png
@@ -52,6 +64,118 @@
                  [1400, 1545], [1500, 1520], [1600, 1492], [1800, 1462], [2000, 1442], [2200, 1440], [2421, 1436]];
 
     var leafLink = document.querySelector(".leaf-link");
+    var boltLink = document.querySelector(".bolt-link");      // the lightning bolt: tap it and it strikes again
+    var boltTapAt = -10, clothesAt = -1, sinkAt = -1;   // sinkAt: when Back sends the clothes back under the water
+    var rises = Array.prototype.slice.call(document.querySelectorAll(".rise"));
+    var CARD_W = 170, CARD_H = 300;   // size of each clothing screen, in picture pixels
+    var RIPPLE_SPEED = 1100, IMPACT = [797, 985];   // how fast the ripples spread across the water (picture pixels a second), and where the bolt hits it
+    var WAVE_START = 0.55, WAVE_MAX = 2600, WAVE_LIFE = 4.5;    // (Rin: about a quarter slower than the first version)   // the big wave from the bolt: when it starts, how far it spreads, how long it takes
+    function riseDelay(el) { return waveDelay(+el.dataset.x, +el.dataset.y); }
+    function waveDelay(x, y) {                     // seconds after a click until the wave's crest reaches this spot (panels rise, the leaf reacts)
+      var dx = x - IMPACT[0], dy = (y - IMPACT[1]) / 0.16;
+      var d = Math.min(WAVE_MAX * 0.98, Math.sqrt(dx * dx + dy * dy) / wob(Math.atan2(dy, dx), 0));   // where the first wave's uneven edge reaches it
+      var q = 1 - Math.pow(1 - d / WAVE_MAX, 1 / 1.6);           // (the same easing the wave uses)
+      return WAVE_START + q * WAVE_LIFE + 0.05;
+    }
+    function wob(ang, sd) {                        // makes each wave's edge uneven: further out in some places, behind in others
+      return 1 + 0.07 * Math.sin(3 * ang + sd * 1.7) + 0.05 * Math.sin(5 * ang + sd * 4.1) + 0.03 * Math.sin(11 * ang + sd * 2.3);
+    }
+    // your own wave strokes from the sea in reflection-bg.jpg, cut out so they can roll outward from the bolt
+    var waveArt = ["a", "b", "c", "d"].map(function (k) { var im = new Image(); im.src = "reflection-wave-" + k + ".png"; return im; });
+    function fogFade(x, y) {                       // waves fade into the fog the same way the birds and fish do (Nov 10, Rin)
+      return 1 - 0.95 * fogAt(x, 2 * HOR - y);     // water uses the fog at its mirror spot in the sky, like the fish
+    }
+    function ripple(x, y, age, maxR, alpha, life, sd) {   // waves rolling out across the water, made of your drawn wave strokes
+      var c = ctx; life = life || 2.6; sd = sd || 0;
+      var waves = [[0, 1, 1], [0.5, 0.7, 0.8], [1.2, 0.5, 0.6]];   // each wave: start delay, strength, size: no two alike
+      for (var k = 0; k < waves.length; k++) {
+        var a2 = age - waves[k][0];
+        if (a2 <= 0) continue;
+        var ks = sd * 7 + k * 3.3;
+        var q = Math.min(1, a2 / life), r = (1 - Math.pow(1 - q, 1.6)) * maxR * waves[k][2];
+        var f = Math.min(1, a2 / 0.25) * Math.max(0, 1 - q) * alpha * waves[k][1];
+        if (f <= 0.01 || r < 6) continue;
+        var pieces = Math.max(3, Math.min(16, Math.round(r / 110)));   // more strokes as the wave spreads wider
+        for (var j = 0; j < pieces; j++) {
+          var ang = (j + 0.6 * seeded(ks * 13 + j)) / pieces * 2 * Math.PI + ks;
+          if (seeded(ks * 29 + j) < 0.22) continue;                   // a few gaps along each wave
+          var R = r * wob(ang, ks);
+          var px = x + Math.cos(ang) * R, py = y + Math.sin(ang) * R * 0.16;
+          var img = waveArt[Math.floor(seeded(ks * 7 + j * 3) * 4)];
+          if (!img.complete || !img.naturalWidth) continue;
+          var near = Math.max(0.35, Math.min(1.6, 0.45 + (py - HOR) / 600));   // nearer the viewer = bigger
+          var len = Math.min(1, (2 * Math.PI * R / pieces) / img.naturalWidth * 1.1) * near * (0.8 + 0.4 * seeded(ks + j * 5));
+          var tilt = 0.05 * Math.cos(ang) * (Math.sin(ang) > 0 ? -1 : 1);   // almost flat, like your strokes: just a hint of the curve
+          var flip = seeded(ks * 3 + j) < 0.5 ? -1 : 1;
+          c.save();
+          c.globalAlpha = Math.min(1, f * 1.3 * (0.75 + 0.25 * seeded(ks * 11 + j))) * fogFade(px, py);
+          c.translate(px, py); c.rotate(tilt); c.scale(len * flip, near * 1.3);
+          c.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+          c.restore();
+        }
+        var n = Math.min(260, Math.round(r * 0.45) + 10);           // a little lacy foam riding along
+        for (var jb = 0; jb < n; jb++) {
+          var an2 = (jb + seeded(k * 991 + jb + sd * 50) * 0.8) / n * 2 * Math.PI;
+          var lace = 0.5 + 0.5 * Math.sin(an2 * 9 + ks + age * 0.8) * Math.sin(an2 * 4 - age * 0.5 + ks);
+          if (lace < 0.35) continue;
+          var R2 = r * wob(an2, ks) + (seeded(k * 577 + jb * 3) - 0.6) * 12;
+          var bx = x + Math.cos(an2) * R2, by = y + Math.sin(an2) * R2 * 0.16 - 3;
+          var br = 1.1 + seeded(k * 313 + jb * 7) * 2;
+          c.globalAlpha = 1;
+          c.fillStyle = "rgba(226, 236, 236, " + Math.min(1, f * 0.4 * (lace - 0.35) / 0.65) * fogFade(bx, by) + ")";
+          c.beginPath(); c.arc(bx, by, br, 0, 6.283); c.fill();
+        }
+      }
+      c.globalAlpha = 1;
+    }
+    boltLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      if (lastT < CLEAR_AT + 1) return;                    // wait until the first strike is over
+      boltTapAt = lastT;                                   // only the bolt itself lights up (Nov 9, Rin)
+      if (clothesAt < 0 || sinkAt >= 0) {                  // the first tap brings the clothes up out of the water
+        clothesAt = lastT; sinkAt = -1;
+        markCalm();                                        // the calm beach becomes its own Back step (made on a click, so browsers keep it)
+        history.pushState({ step: "clothes" }, "");        // so the Back button sinks them again (Nov 10, Rin)
+        try { sessionStorage.setItem("reflectionSawClothes", "1"); } catch (e) {}   // unlocks the click-to-skip for the rest of this visit
+      }
+    });
+    // Back button (Nov 10, Rin): first Back sinks the clothes and leaves you on the calm beach after the strike.
+    // A second Back goes to Abundance. Forward brings the clothes back up with a strike.
+    // Before the calm there is one more step: the storm. Back from the calm starts Reflection over from the beginning,
+    // and a Back from there goes to Abundance.
+    function markCalm() {                                  // add the calm beach as a Back step: only ever inside a click, or the browser skips it
+      var st = history.state && history.state.step;
+      if (st == "calm" || st == "clothes") return;
+      if (st != "storm") history.replaceState({ step: "storm" }, "");   // this entry is the storm
+      history.pushState({ step: "calm" }, "");
+    }
+    // A click anywhere before the strike skips ahead: the fog starts gathering right away and the strike follows (Nov 10, Rin)
+    // Only after someone has seen the clothes (this visit), so a first-timer always gets the whole opening.
+    document.addEventListener("click", function () {
+      if (lastT > CLEAR_AT + 1) markCalm();                 // any click on the calm beach makes it a Back step
+      var saw = false; try { saw = sessionStorage.getItem("reflectionSawClothes") == "1"; } catch (e) {}
+      if (!saw) return;
+      jumpClock(CLEAR_AT - PULL_TIME);
+    });
+    function jumpClock(to) {                               // move the story's clock forward to this moment
+      if (t0 !== null && lastT < to) { t0 -= (to - lastT) * 1000; lastT = to; }
+    }
+    window.addEventListener("popstate", function () {
+      var step = history.state && history.state.step;
+      var stormy = lastT < CLEAR_AT;                        // still in the storm, before the strike
+      if (step == "clothes") {                              // Forward to the clothes
+        if (stormy) { jumpClock(CLEAR_AT - 0.05); boltTapAt = clothesAt = CLEAR_AT + 1.2; sinkAt = -1; }   // strike now, then the clothes come up
+        else if (clothesAt < 0 || sinkAt >= 0) { boltTapAt = lastT; clothesAt = lastT; sinkAt = -1; }
+      } else if (step == "calm") {
+        if (stormy) jumpClock(CLEAR_AT - 0.05);             // Forward from the storm: the strike happens right away
+        else if (clothesAt >= 0 && sinkAt < 0) sinkAt = lastT;   // Back from the clothes: they sink
+      } else if (!stormy) {                                 // Back from the calm into the storm: start Reflection over
+        history.replaceState({ step: "storm" }, "");        // (marked, so the next Back goes on to Abundance)
+        location.reload();
+      }
+    });
+    var arrived = history.state && history.state.step;
+    if (arrived == "calm" || arrived == "clothes") history.replaceState({ step: "storm" }, "");   // the page always opens in the storm
     var leafTapAt = -10;
     leafLink.addEventListener("click", function (event) {
       event.preventDefault();
@@ -63,6 +187,8 @@
     var lastT = 0;
     var canvas = document.querySelector("canvas.scene");
     var ctx = canvas.getContext("2d");
+    var sprayC = document.querySelector("canvas.spray"), sprayX = sprayC.getContext("2d");
+    var drops = [], lastFrame = 0;                       // the water drops falling off the panels
     ctx.imageSmoothingQuality = "high";
     var W, H, dpr;
 
@@ -152,9 +278,9 @@
     }
 
     // ---------- Things that move ----------
-    var base, fogC, fogX, fogMask, fogTint, noiseA, noiseB, smokeC, smokeX, fullC, fullX, fullMask, softC, softX, softMask;
+    var waveC, waveX, puffC, glowDot, boltCut, drags, loopC, loopX, backC, backX, frontC, frontX, base, fogC, fogX, fogMask, fogTint, noiseA, noiseB, smokeC, smokeX, fullC, fullX, fullMask, softC, softX, softMask;
     var birds = [], glitter = [], motes = [], grains = [], gold = [], foam = [], swells = [];
-    var fullDensity, markedDensity, clearNow = 0, skyFill, sandFill, sideL, sideR, chaosC, chaosX, chaosSmoke, chaosSX, chaosTint, chaosMask;
+    var swirlC, swirlX, swirlAt = -1, fullDensity, markedDensity, clearNow = 0, skyFill, sandFill, sideL, sideR, chaosC, chaosX, chaosSmoke, chaosSX, chaosTint, chaosMask;
     var PAD = 800;            // how far the chaos fog reaches past the picture's left and right edges
     // 0 = no fog here, 1 = thick fog. x, y are in the sky; fish use the spot of their bird.
     function fogAt(x, y) {
@@ -301,7 +427,49 @@
       um.fillRect(-60, -40, 120, 80);
       um.restore();
 
+      // the fog that circles the bolt: a soft puff of smoke, and a cut-out of the bolt to lay over the puffs behind it
+      puffC = document.createElement("canvas");
+      puffC.width = puffC.height = 128;
+      var pf = puffC.getContext("2d");
+      for (var pi = 0; pi < 14; pi++) {
+        var px0 = 64 + rand(-26, 26), py0 = 64 + rand(-18, 18), pr = rand(18, 40);
+        var pg = pf.createRadialGradient(px0, py0, 0, px0, py0, pr);
+        pg.addColorStop(0, "rgba(255,255,255,0.32)");
+        pg.addColorStop(1, "rgba(255,255,255,0)");
+        pf.fillStyle = pg; pf.fillRect(0, 0, 128, 128);
+      }
+      pf.globalCompositeOperation = "source-in";
+      pf.fillStyle = "rgb(150, 141, 128)";                     // the fog's own murky color
+      pf.fillRect(0, 0, 128, 128);
+      glowDot = document.createElement("canvas");              // a soft warm dot of light, for the glow that follows the bolt
+      glowDot.width = glowDot.height = 64;
+      var gd = glowDot.getContext("2d"), gg = gd.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gg.addColorStop(0, "rgba(255, 252, 235, 0.5)"); gg.addColorStop(0.35, "rgba(255, 248, 225, 0.16)"); gg.addColorStop(1, "rgba(255, 248, 225, 0)");
+      gd.fillStyle = gg; gd.fillRect(0, 0, 64, 64);
+      waveC = document.createElement("canvas");                // the wave bands are drawn here, small, so they come out soft
+      waveC.width = Math.round((IW + 2 * SIDE) / 7); waveC.height = Math.round(IH / 7); waveX = waveC.getContext("2d");
+      drags = [];                                                // the cloudy puffs that get dragged in toward the bolt
+      for (var dj = 0; dj < 24; dj++) drags.push({ a0: rand(0, 6.283), r0: rand(500, 1100), curl: rand(0.5, 0.9),
+        speed: rand(0.14, 0.22), ph: Math.random(), size: rand(170, 280), op: rand(0.12, 0.2) });
+      boltCut = document.createElement("canvas");
+      boltCut.width = 140; boltCut.height = HOR - 140;          // the bolt runs from about y 150 down to the water
+      var bc = boltCut.getContext("2d");
+      bc.drawImage(bg, 730, 140, 140, HOR - 140, 0, 0, 140, HOR - 140);
+      var soft = document.createElement("canvas");             // the sky around the bolt, smeared sideways (no bolt in it)
+      soft.width = 10; soft.height = HOR - 140;
+      soft.getContext("2d").drawImage(boltCut, 0, 0, 10, HOR - 140);
+      bc.globalCompositeOperation = "difference";              // what's left is just the bright bolt, on black
+      bc.drawImage(soft, 0, 0, 140, HOR - 140);
+      bc.globalCompositeOperation = "lighter";                 // made brighter, so it shines through the fog
+
       // a copy of the fog with soft edges, used while it's pulled in and blasted out
+      swirlC = document.createElement("canvas");                // the spiralling fog, side strips included
+      swirlC.width = Math.round((IW + 2 * SIDE) / (IW / fogC.width)); swirlC.height = fogC.height;
+      swirlX = swirlC.getContext("2d");
+      loopC = document.createElement("canvas");                 // the fog that circles the bolt
+      loopC.width = 2 * fogC.width; loopC.height = fogC.height; loopX = loopC.getContext("2d");
+      backC = document.createElement("canvas"); backC.width = swirlC.width; backC.height = fogC.height; backX = backC.getContext("2d");
+      frontC = document.createElement("canvas"); frontC.width = swirlC.width; frontC.height = fogC.height; frontX = frontC.getContext("2d");
       softC = document.createElement("canvas");
       softC.width = fogC.width; softC.height = fogC.height;
       softX = softC.getContext("2d");
@@ -449,6 +617,7 @@
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = window.innerWidth; H = window.innerHeight;
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      sprayC.width = canvas.width; sprayC.height = canvas.height;
     }
 
     // Camera: starts close up on the sky and the light, then looks down onto the beach
@@ -521,6 +690,86 @@
       c.restore();
     }
 
+    // the path of the bolt in your art (picture pixels), traced from reflection-bg.jpg
+    var BOLT_PATH = [[792,168],[799,198],[805,218],[815,238],[817,258],[826,268],[805,288],[769,308],[775,328],[781,348],
+      [789,368],[796,388],[804,408],[809,428],[816,448],[811,468],[807,488],[804,508],[802,528],[803,558],[804,578],
+      [807,598],[808,618],[809,638],[805,658],[804,678],[801,698],[798,718],[796,738],[796,758],[800,778],[798,798],
+      [797,818],[794,838],[793,858],[795,878],[796,898],[797,918],[798,938],[797,962]];
+    function seeded(n) { var x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x); }
+    function makeZig(seed) {                                    // a jagged crackle that follows the bolt, plus a few short forks
+      var main = [], forks = [], k = 0;
+      for (var i = 0; i < BOLT_PATH.length; i++) {
+        var p0 = BOLT_PATH[i];
+        main.push([p0[0] + (seeded(seed + k++) - 0.5) * 14, p0[1]]);
+        if (i < BOLT_PATH.length - 1) {                         // an extra kink between each pair of points
+          var p1 = BOLT_PATH[i + 1];
+          main.push([(p0[0] + p1[0]) / 2 + (seeded(seed + k++) - 0.5) * 20, (p0[1] + p1[1]) / 2]);
+        }
+      }
+      for (var f = 0; f < 5; f++) {
+        var at = main[6 + Math.floor(seeded(seed + 100 + f) * (main.length - 20))];
+        var dir = seeded(seed + 200 + f) < 0.5 ? -1 : 1, fk = [[at[0], at[1]]], x = at[0], y = at[1];
+        for (var j = 0; j < 6; j++) { x += dir * (10 + seeded(seed + 300 + f * 9 + j) * 22) * (seeded(seed + 500 + f * 9 + j) < 0.25 ? -0.5 : 1); y += 12 + seeded(seed + 400 + f * 9 + j) * 18; fk.push([x, y]); }
+        forks.push(fk);
+      }
+      return { main: main, forks: forks };
+    }
+    function drawZig(z, a) {
+      var c = ctx;
+      function line(pts) { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (var i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.stroke(); }
+      c.lineJoin = "miter"; c.lineCap = "round";
+      c.strokeStyle = "rgba(170, 180, 255, " + 0.35 * a + ")"; c.lineWidth = 7; line(z.main);   // a thin electric-violet edge, so it shows against the bright sky    // a thin halo, just around the line
+      c.strokeStyle = "rgba(255, 255, 255, " + a + ")"; c.lineWidth = 3.2; line(z.main);           // the white-hot core
+      c.lineWidth = 5; c.strokeStyle = "rgba(150, 165, 255, " + 0.45 * a + ")"; z.forks.forEach(line);
+      c.lineWidth = 1.8; c.strokeStyle = "rgba(255, 255, 255, " + 0.9 * a + ")"; z.forks.forEach(line);
+    }
+
+    // --- Water running and dripping off the clothing panels as they rise out of the sea ---
+    function drawSpray(t) {
+      var x = sprayX, dt = Math.min(0.05, Math.max(0, t - lastFrame)); lastFrame = t;
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      x.clearRect(0, 0, W, H);
+      rises.forEach(function (el, i) {
+        var p = el._s; if (!p || el.style.display === "none") return;
+        var wet = Math.max(0, 1 - Math.max(0, p.age - 1.4) / 3.2);       // soaking wet as it comes up, drying over a few seconds
+        if (wet <= 0) return;
+        var vis = p.water - p.top; if (vis <= 2) return;
+        // sheets of water sliding down its face
+        for (var sI = 0; sI < 7; sI++) {
+          var sx = p.x + p.w * (0.1 + 0.8 * seeded(i * 31 + sI)), len = vis * (0.25 + 0.4 * seeded(i * 17 + sI));
+          var sy = p.top + ((t * (90 + 60 * seeded(sI + i)) * p.k * 2 + seeded(i * 7 + sI) * vis) % (vis + len)) - len;
+          var g = x.createLinearGradient(0, sy, 0, sy + len);
+          g.addColorStop(0, "rgba(235, 248, 255, 0)"); g.addColorStop(0.75, "rgba(235, 248, 255, " + 0.16 * wet + ")"); g.addColorStop(1, "rgba(255, 255, 255, " + 0.38 * wet + ")");
+          x.fillStyle = g;
+          x.fillRect(sx, Math.max(p.top, sy), Math.max(2.5, 4.5 * p.k * 2), Math.min(sy + len, p.water) - Math.max(p.top, sy));
+        }
+        // new drops pour off its edges and corners
+        var rate = 60 * wet * wet;
+        var n = Math.floor(rate * dt + Math.random());
+        for (var d = 0; d < n; d++) {
+          var side = Math.random();
+          var dx = side < 0.35 ? p.x + Math.random() * 3 : side < 0.7 ? p.x + p.w - Math.random() * 3 : p.x + Math.random() * p.w;
+          var dy = side < 0.7 ? p.top + Math.random() * vis * 0.9 : p.top + 2;
+          drops.push({ x: dx, y: dy, vx: (side < 0.35 ? -1 : side < 0.7 ? 1 : (Math.random() - 0.5)) * (10 + Math.random() * 30) * p.k * 2,
+                       vy: Math.random() * 20, r: (0.8 + Math.random() * 1.6) * Math.max(0.7, p.k * 2), floor: p.water + Math.random() * 6, splash: false });
+        }
+      });
+      for (var j = drops.length - 1; j >= 0; j--) {          // drops fall, then splash where they hit the water
+        var q = drops[j];
+        q.vy += 900 * dt; q.x += q.vx * dt; q.y += q.vy * dt;
+        if (q.splash) { q.life -= dt; if (q.life <= 0) { drops.splice(j, 1); continue; } }
+        else if (q.y >= q.floor) {
+          drops.splice(j, 1);
+          for (var b = 0; b < 3; b++) drops.push({ x: q.x, y: q.floor, vx: (Math.random() - 0.5) * 60, vy: -60 - Math.random() * 70, r: q.r * 0.6, floor: q.floor + 3, splash: true, life: 0.25 });
+          continue;
+        }
+        if (q.splash && q.y > q.floor) q.y = q.floor;
+        x.fillStyle = "rgba(240, 250, 255, " + (q.splash ? 0.7 * q.life / 0.25 : 0.8) + ")";
+        x.beginPath(); x.ellipse(q.x, q.y, q.r, q.r * (q.splash ? 1 : 1.6), 0, 0, 6.283); x.fill();
+      }
+      if (drops.length > 600) drops.splice(0, drops.length - 600);
+    }
+
     function flashLevel(t) {
       var d = t - flashAt;
       if (d < 0 || d > 0.9) return 0;
@@ -538,24 +787,27 @@
       var c = ctx;
       if (t > nextFlash) {
         flashAt = t;
-        flashPower = 1.8;                                        // the big strike that clears the fog
+        flashPower = 2.6;                                        // the big strike that clears the fog (Nov 10, Rin: more umph)
         nextFlash = Infinity;                                    // after that, the beach stays peaceful
       }
       var flash = flashLevel(t) * flashPower;
-      var clear = smooth((t - CLEAR_AT - 0.05) / 1.4);           // 0 = brain fog, 1 = cleared
+      var clear = smooth((t - CLEAR_AT - PULSE_AT - 0.05) / 1.4);           // 0 = brain fog, 1 = cleared
       clearNow = clear;
 
       // --- The power build-up: the fog gets sucked in toward the lightning, then blasts out when it strikes ---
-      var pull = Math.max(0, Math.min(1, (t - (CLEAR_AT - 2.4)) / 2.4));
+      var pull = Math.max(0, Math.min(1, (t - (CLEAR_AT - PULL_TIME)) / PULL_TIME));   // pulling in
       pull = pull * pull * pull;                                 // slow at first, then faster and faster
-      var burst = smooth((t - CLEAR_AT) / 1.1);
+      var burst = smooth((t - CLEAR_AT - PULSE_AT) / 1.1);
       var fogK = 1 - 0.5 * pull + 1.6 * burst;                   // shrinks toward the bolt, then flies outward
-      var fogSpin = 0.35 * pull + 0.15 * burst;                  // a slight swirl as it's pulled
+      var fogSpin = 0.35 * pull + 0.15 * burst;                  // the whole fog turns a little
+      var SWIRL = 0.8;                                           // how hard the fog spirals around the bolt (radians at the center)
+      var swirl = SWIRL * Math.cbrt(pull) + 0.6 * burst;                    // winds up as it's pulled in, keeps spinning as it's blasted out
       var fogBoost = 1 + 0.5 * pull * (1 - burst);               // thicker while it gathers
       if (t < CLEAR_AT) flash = Math.max(flash, pull * 0.35 * (0.6 + 0.4 * Math.sin(t * 40)));   // the bolt crackles as power builds
       var since = t - CLEAR_AT;
-      if (since > 0 && since < 0.5) {                            // the strike shakes the view
-        var shake = (1 - since / 0.5) * 10;
+      var sinceTap = t - boltTapAt;
+      if ((since > 0 && since < 0.8) || (sinceTap > 0 && sinceTap < 0.45)) {   // a strike shakes the view
+        var shake = since > 0 && since < 0.8 ? Math.pow(1 - since / 0.8, 1.5) * 22 : (1 - sinceTap / 0.45) * 9;   // a tap on the bolt hits hard too
         cam.x += (Math.random() - 0.5) * shake;
         cam.y += (Math.random() - 0.5) * shake;
       }
@@ -566,24 +818,83 @@
         softX.globalCompositeOperation = "destination-in";
         softX.drawImage(softMask, 0, 0);
       }
-      function drawFullFog(alpha) {                              // still fog fades out as the pulled fog takes over
-        if (pull < 1) {
-          c.globalAlpha = Math.min(1, alpha * (1 - pull));
-          c.drawImage(fullC, 0, 0, IW, IH);
-          mirrorSides(fullC);                                    // the fog carries on over the side strips
-          c.globalAlpha = 1;
-        }
-        if (pull > 0) drawFog(softC, alpha * pull);
+      function drawFullFog(alpha) {
+        var stay = 1 - 0.6 * pull;                               // the still fog thins as the fog starts to circle the bolt
+        c.globalAlpha = Math.min(1, alpha * stay);
+        c.drawImage(fullC, 0, 0, IW, IH);
+        mirrorSides(fullC);                                      // the fog carries on over the side strips
+        c.globalAlpha = 1;
+        if (pull > 0) drawCarousel(fullC, alpha * Math.min(1, pull * 1.5));
       }
-      function drawFog(img, alpha) {
+      // the fog goes round the bolt like the screens round the plant in Abundance:
+      // it is wrapped onto a ring around the lightning, slides across in front, and comes back round behind it
+      var carAt = -1;
+      function drawCarousel(img, alpha) {
+        var R = (950 - 350 * pull) * (1 + 1.8 * burst);          // pulled in close, then the strike pushes it out
+        var cx = LIGHT_X + 5, sc = IW / fogC.width;
+        if (carAt !== t) {                                       // build the ring once per frame, at the fog's own size
+          carAt = t;
+          var spin = 0.35 * (t - (CLEAR_AT - PULL_TIME)) + 1.6 * pull + 0.8 * burst;   // slow at first, picking up as the power builds
+          loopX.clearRect(0, 0, loopC.width, loopC.height);      // the fog and its mirror image side by side: a seamless loop
+          loopX.drawImage(img, 0, 0);
+          loopX.save(); loopX.scale(-1, 1); loopX.drawImage(img, -2 * img.width, 0); loopX.restore();
+          var LW = loopC.width, fh3 = img.height, Rp = R / sc, cxp = (cx + SIDE) / sc;
+          for (var side = 0; side < 2; side++) {
+            var X = side === 0 ? backX : frontX, CV = side === 0 ? backC : frontC;
+            X.globalCompositeOperation = "source-over";
+            X.clearRect(0, 0, CV.width, CV.height);
+            var x0 = Math.max(0, Math.floor(cxp - Rp)), x1 = Math.min(CV.width, Math.ceil(cxp + Rp));
+            for (var px = x0; px < x1; px++) {                   // one column at a time: find where on the ring it sits
+              var sn = (px + 0.5 - cxp) / Rp;
+              if (sn <= -1 || sn >= 1) continue;
+              var th = Math.asin(sn);
+              if (side === 0) th = Math.PI - th;                 // the far side runs the other way
+              var u = ((th - spin) / (2 * Math.PI)) % 1; if (u < 0) u += 1;
+              var lift = (side === 0 ? -1 : 1) * Math.cos(Math.asin(sn)) * 30 / sc;   // the far side floats up a little
+              X.drawImage(loopC, Math.min(LW - 1, u * LW), 0, 1, fh3, px, lift, 1, fh3);
+            }
+            X.globalCompositeOperation = "destination-in";      // soft at the sides of the ring
+            var eg = X.createLinearGradient(cxp - Rp, 0, cxp + Rp, 0);
+            eg.addColorStop(0, "rgba(0,0,0,0)"); eg.addColorStop(0.25, "rgba(0,0,0,0.9)");
+            eg.addColorStop(0.5, "rgba(0,0,0,1)"); eg.addColorStop(0.75, "rgba(0,0,0,0.9)"); eg.addColorStop(1, "rgba(0,0,0,0)");
+            X.fillStyle = eg; X.fillRect(0, 0, CV.width, CV.height);
+          }
+        }
         c.save();
-        c.globalAlpha = Math.min(1, alpha);
-        c.translate(FOCUS[0], FOCUS[1]);
-        c.rotate(fogSpin);
-        c.scale(fogK, fogK);
-        c.translate(-FOCUS[0], -FOCUS[1]);
-        c.drawImage(img, 0, 0, IW, IH);
+        c.beginPath(); c.rect(-SIDE - 10, -2000, IW + 2 * SIDE + 20, HOR + 2000); c.clip();
+        c.globalAlpha = Math.min(1, alpha * 0.6);
+        c.drawImage(backC, -SIDE, 0, backC.width * sc, IH);      // the far side
+        c.globalAlpha = Math.min(1, alpha * 0.9);
+        c.drawImage(frontC, -SIDE, 0, frontC.width * sc, IH);    // the near side, in front of the bolt
+        c.globalAlpha = 1;
         c.restore();
+      }
+      function makeSwirl(img) {
+        var fw2 = img.width, fh2 = img.height, sc = IW / fw2;          // fog pixels are this many picture pixels wide
+        var src = img.getContext("2d").getImageData(0, 0, fw2, fh2).data;
+        var sw = swirlC.width, sh = swirlC.height, out = swirlX.createImageData(sw, sh), od = out.data;
+        var R = 2600, inv = 1 / fogK;
+        for (var oy = 0; oy < sh; oy++) {
+          for (var ox = 0; ox < sw; ox++) {
+            var px = (ox + 0.5) * sc - SIDE, py = (oy + 0.5) * sc;
+            var dx = px - FOCUS[0], dy = py - FOCUS[1];
+            var r = Math.sqrt(dx * dx + dy * dy);
+            var k = Math.max(0, 1 - r / R);
+            var ang = -(fogSpin + swirl * k * k * Math.sqrt(k));          // turn back to find where this bit of fog came from
+            var cs = Math.cos(ang), sn = Math.sin(ang);
+            var sx = (FOCUS[0] + (dx * cs - dy * sn) * inv) / sc, sy = (FOCUS[1] + (dx * sn + dy * cs) * inv) / sc;
+            if (sx < 0) sx = -sx; if (sx > fw2 - 1) sx = 2 * (fw2 - 1) - sx;   // past the picture's edge: mirrored fog
+            var ix = Math.floor(sx), iy = Math.floor(sy), o = (oy * sw + ox) * 4;
+            if (ix < 0 || iy < 0 || ix >= fw2 - 1 || iy >= fh2 - 1) { od[o + 3] = 0; continue; }
+            var fx = sx - ix, fy = sy - iy, i0 = (iy * fw2 + ix) * 4, i1 = i0 + fw2 * 4;
+            for (var ch = 0; ch < 4; ch++) {                            // smooth blend of the 4 nearest fog pixels
+              var top = src[i0 + ch] + (src[i0 + 4 + ch] - src[i0 + ch]) * fx;
+              var bot = src[i1 + ch] + (src[i1 + 4 + ch] - src[i1 + ch]) * fx;
+              od[o + ch] = top + (bot - top) * fy;
+            }
+          }
+        }
+        swirlX.putImageData(out, 0, 0);
       }
       var tS = t + 4 * pull;                                     // the smoke speeds up as it's pulled
 
@@ -605,6 +916,32 @@
 
       c.setTransform(dpr * cam.s, 0, 0, dpr * cam.s, dpr * (W / 2 - cam.x * cam.s), dpr * (H / 2 - cam.y * cam.s));
       var tapSize = Math.max(64, 200 * cam.s);                 // big enough to tap easily with a finger
+      var boltW = Math.max(44, 130 * cam.s);                  // the tap area over the bolt, wide enough for a finger
+      boltLink.style.width = boltW + "px";
+      boltLink.style.height = ((HOR - 150) * cam.s) + "px";
+      boltLink.style.left = (W / 2 + (LIGHT_X + 8 - cam.x) * cam.s - boltW / 2) + "px";
+      boltLink.style.top = (H / 2 + (150 - cam.y) * cam.s) + "px";
+      boltLink.style.display = t > CLEAR_AT + 1 ? "block" : "none";
+      rises.forEach(function (el, i) {                         // the clothes rise out of the water, one after another
+        var up = clothesAt < 0 ? 0 : smooth((t - clothesAt - riseDelay(el)) / 1.8);   // each rises as the ripple reaches it
+        if (sinkAt >= 0) up *= 1 - smooth((t - sinkAt - 0.25 * i) / 1.6);           // Back: they slip back under, one after another
+        if (up <= 0) { el.style.display = "none"; return; }
+        el.style.display = "block";
+        var wx = +el.dataset.x, wy = +el.dataset.y, cw = CARD_W * cam.s, ch = CARD_H * cam.s;
+        el.style.width = cw + "px"; el.style.height = (ch + 40 * cam.s) + "px";
+        el.style.left = (W / 2 + (wx - cam.x) * cam.s - cw / 2) + "px";
+        el.style.top = (H / 2 + (wy - CARD_H - 40 - cam.y) * cam.s) + "px";   // the box's bottom edge is the water line
+        var bob = Math.sin(t * 1.1 + i * 1.7) * 6 * up;
+        el.firstChild.style.transform = "translateY(" + ((1 - up) * (ch + 40 * cam.s) + bob * cam.s) + "px)";
+        el.firstChild.style.opacity = Math.min(1, up * 1.6);
+        var age = t - clothesAt - riseDelay(el);
+        el._s = { x: W / 2 + (wx - cam.x) * cam.s - cw / 2, w: cw,                       // where the panel is on screen, for the water running off it
+                  water: H / 2 + (wy - 40 - cam.y) * cam.s + 40 * cam.s - 10,
+                  top: H / 2 + (wy - CARD_H - 40 - cam.y) * cam.s + (1 - up) * (ch + 40 * cam.s) + bob * cam.s,
+                  age: age, k: cam.s };
+      });
+      if (sinkAt >= 0 && t - sinkAt > 0.25 * rises.length + 1.7) { clothesAt = -1; sinkAt = -1; }   // all under: the beach is calm again
+      drawSpray(t);
       leafLink.style.width = leafLink.style.height = tapSize + "px";
       leafLink.style.left = (W / 2 + (1509 - cam.x) * cam.s - tapSize / 2) + "px";
       leafLink.style.top = (H / 2 + (1615 - cam.y) * cam.s - tapSize / 2) + "px";
@@ -831,6 +1168,167 @@
         c.globalCompositeOperation = "source-over";
       }
 
+      // (the pulse is the fog itself being pushed out from the bolt: no ring of light, Nov 9, Rin)
+
+      // --- After the fog clears: the middle of the picture warms up (Nov 9, Rin) ---
+      var WARMTH = 0.55;                                           // how warm the middle gets (0 = not at all)
+      if (clear > 0) {
+        c.save();
+        c.globalCompositeOperation = "soft-light";
+        c.translate(LIGHT_X, 900); c.scale(1, 1.15);
+        var wg = c.createRadialGradient(0, 0, 0, 0, 0, 1050);
+        wg.addColorStop(0, "rgba(255, 170, 70, " + WARMTH * clear + ")");
+        wg.addColorStop(0.55, "rgba(255, 180, 90, " + 0.6 * WARMTH * clear + ")");
+        wg.addColorStop(1, "rgba(255, 180, 90, 0)");
+        c.fillStyle = wg; c.fillRect(-1050, -1050, 2100, 2100);
+        c.restore();
+      }
+
+      // --- The cross: the thin cloud across the bolt glows with it (Nov 9, Rin) ---
+      var crossOn = 0.38 + 0.07 * Math.sin(t * 1.1);
+      var crossK = crossOn * smooth((t - CLEAR_AT - 0.9) / 1.5);   // dark until the strike's flash has faded, then it glows in
+      if (crossK > 0.01) {
+        c.globalCompositeOperation = "lighter";
+        var crossGlow = function (cy, k) {
+          c.save(); c.translate(797, cy); c.scale(1, 0.075);         // across: wide and thin, along the cloud
+          var g1 = c.createRadialGradient(0, 0, 0, 0, 0, 230);
+          g1.addColorStop(0, "rgba(255, 246, 215, " + 0.55 * k + ")");
+          g1.addColorStop(0.5, "rgba(255, 238, 195, " + 0.22 * k + ")");
+          g1.addColorStop(1, "rgba(255, 238, 195, 0)");
+          c.fillStyle = g1; c.fillRect(-230, -230, 460, 460);
+          c.restore();
+          c.save(); c.translate(797, cy + (cy < HOR ? 120 : -120)); c.scale(0.06, 1);   // down: tall and thin, along the bolt
+          var g2 = c.createRadialGradient(0, 0, 0, 0, 0, 330);
+          g2.addColorStop(0, "rgba(255, 246, 215, " + 0.45 * k + ")");
+          g2.addColorStop(1, "rgba(255, 246, 215, 0)");
+          c.fillStyle = g2; c.fillRect(-330, -330, 660, 660);
+          c.restore();
+          var g3 = c.createRadialGradient(797, cy, 0, 797, cy, 70);   // a bright heart where they cross
+          g3.addColorStop(0, "rgba(255, 250, 230, " + 0.5 * k + ")");
+          g3.addColorStop(1, "rgba(255, 250, 230, 0)");
+          c.fillStyle = g3; c.fillRect(727, cy - 70, 140, 140);
+        };
+        crossGlow(364, crossK);
+        c.save(); waterPath(c); c.clip();
+        crossGlow(2 * HOR - 364, crossK * 0.35);                      // and its reflection in the water
+        c.restore();
+        c.globalCompositeOperation = "source-over";
+      }
+
+      // --- Tapping the bolt: the bolt's glow flickers (Nov 9, Rin: just the bolt, no screen flash) ---
+      var gs = sinceTap >= 0 && sinceTap < 1.2 ? sinceTap : -1;   // only a click gets the glowing pulse (the first strike has its own look)
+      if (gs >= 0) {
+        var fl = [0, 0.18, 0.4], on = 0, seed = 0;
+        for (var fi = 0; fi < fl.length; fi++) {                 // three quick flickers
+          var dF = gs - fl[fi];
+          if (dF >= 0 && dF < 0.15) { on = 1 - 0.4 * dF / 0.15; seed = fi + 1; }
+        }
+        if (gs > 0.55) { on = 0.6 * (1 - (gs - 0.55) / 0.65); seed = 3; }   // then it fades slowly   // a last faint afterimage
+        if (on > 0) {                                            // the glow follows the bends of your bolt, with a bright pulse running down it
+          var head = Math.min(1, gs / 0.6);               // where the running pulse is: 0 = top of the bolt, 1 = the water
+          var glowAlong = function () {
+            for (var gi = 0; gi < BOLT_PATH.length; gi++) {
+              var gp = BOLT_PATH[gi], gu = gi / (BOLT_PATH.length - 1);
+              var near = Math.exp(-Math.pow((gu - head) * 7, 2));  // brighter where the pulse is passing
+              var gr = 34 + 46 * near;
+              c.globalAlpha = Math.min(1, on * (0.45 + 0.55 * near));
+              c.drawImage(glowDot, gp[0] - gr, gp[1] - gr, 2 * gr, 2 * gr);
+            }
+          };
+          c.globalCompositeOperation = "lighter";
+          glowAlong(); glowAlong();
+          c.save(); waterPath(c); c.clip();
+          c.translate(0, 2 * HOR); c.scale(1, -1);                 // and in its reflection
+          c.globalAlpha = 1;
+          var keep = on; on *= 0.6; glowAlong(); on = keep;
+          c.restore();
+          var hit = Math.max(0, 1 - gs / 0.5);             // the impact where the bolt meets the water
+          if (hit > 0) {
+            var hg = c.createRadialGradient(797, HOR - 5, 0, 797, HOR - 5, 260);
+            hg.addColorStop(0, "rgba(255, 252, 238, " + 0.95 * hit + ")");
+            hg.addColorStop(0.3, "rgba(255, 246, 220, " + 0.4 * hit + ")");
+            hg.addColorStop(1, "rgba(255, 246, 220, 0)");
+            c.save(); c.translate(797, HOR - 5); c.scale(1.6, 0.45); c.translate(-797, -(HOR - 5));
+            c.fillStyle = hg; c.fillRect(797 - 260, HOR - 265, 520, 520);
+            c.restore();
+          }
+          c.globalAlpha = 1;
+          c.globalCompositeOperation = "source-over";
+        }
+      }
+
+      // --- The first strike (Nov 10, Rin picked): it shoots down from the sky, then the sea lights up ---
+      var LEAD = 0.16;                                           // seconds for the strike to travel from the clouds to the water
+      if (since > -LEAD && since < 0.7) {                        // the strike comes down your bolt from the top
+        var reach = since < 0 ? (since + LEAD) / LEAD : 1;       // how far down it has got (0 = top, 1 = the water)
+        var lit = since < 0 ? 1 : Math.pow(1 - since / 0.7, 2);  // then the whole bolt glows and fades
+        c.globalCompositeOperation = "lighter";
+        var strikeDown = function (k) {                          // walks along your bolt in small steps so the light is smooth, not beads
+          var N = BOLT_PATH.length - 1;
+          for (var si = 0; si < N; si++) {
+            var A = BOLT_PATH[si], B = BOLT_PATH[si + 1];
+            var steps = Math.max(1, Math.round(Math.hypot(B[0] - A[0], B[1] - A[1]) / 5));
+            for (var sj = 0; sj < steps; sj++) {
+              var f = sj / steps, su = (si + f) / N;
+              if (su > reach) return;
+              var tip = since < 0 ? Math.exp(-Math.pow((reach - su) * 14, 2)) : 0;   // hottest right at the front
+              var sr = 13 + 9 * tip;
+              c.globalAlpha = Math.min(1, k * lit * (0.18 + 0.3 * tip));
+              c.drawImage(glowDot, A[0] + (B[0] - A[0]) * f - sr, A[1] + (B[1] - A[1]) * f - sr, 2 * sr, 2 * sr);
+            }
+          }
+        };
+        strikeDown(1); strikeDown(1);
+        c.save(); waterPath(c); c.clip();
+        c.translate(0, 2 * HOR); c.scale(1, -1);                 // and in its reflection
+        strikeDown(0.5);
+        c.restore();
+        c.globalAlpha = 1;
+        c.globalCompositeOperation = "source-over";
+      }
+      if (since > 0 && since < 2.6) {                            // the sea lights up: the flash pours out over the water from where it hit
+        var sea = 1 - Math.pow(1 - Math.min(1, since / 1.3), 3); // how far the light has spread (fast, then easing)
+        var seaR = 120 + 2100 * sea;
+        var seaA = Math.pow(1 - since / 2.6, 1.6);                // and it fades as it goes
+        c.save(); waterPath(c); c.clip();
+        c.globalCompositeOperation = "lighter";
+        c.save(); c.translate(IMPACT[0], HOR); c.scale(1, 0.38);
+        var sg = c.createRadialGradient(0, 0, 0, 0, 0, seaR);   // a soft wash of light, brightest where the bolt hit (no edge, no ring)
+        sg.addColorStop(0, "rgba(255, 250, 230, " + 0.75 * seaA + ")");
+        sg.addColorStop(0.35, "rgba(255, 244, 215, " + 0.32 * seaA + ")");
+        sg.addColorStop(1, "rgba(255, 244, 215, 0)");
+        c.fillStyle = sg; c.fillRect(-seaR, -seaR, 2 * seaR, 2 * seaR);
+        c.restore();
+        for (var gi2 = 1; gi2 <= 320; gi2++) {                    // sparkles on the waves where the light passes
+          var gx = -SIDE + seeded(gi2 * 3.1) * (IW + 2 * SIDE);
+          var gy = HOR + 6 + Math.pow(seeded(gi2 * 7.7), 1.4) * 760;
+          var gd2 = Math.hypot(gx - IMPACT[0], (gy - HOR) / 0.38);
+          if (gd2 > seaR) continue;
+          var passed = since - 1.3 * (1 - Math.cbrt(1 - Math.min(1, gd2 / 2220)));   // time since the light reached it
+          if (passed < 0) continue;
+          var tw = 0.5 + 0.5 * Math.sin(t * (18 + 14 * seeded(gi2)) + gi2);   // each one twinkles
+          var ga = 1.6 * Math.exp(-passed * 1.6) * tw * (1 - 0.5 * gd2 / 2220);
+          if (ga < 0.03) continue;
+          var gw = 10 + 14 * seeded(gi2 * 1.3) * (0.5 + (gy - HOR) / 760);   // closer ones are a bit bigger
+          c.globalAlpha = Math.min(1, ga);
+          c.drawImage(glowDot, gx - gw, gy - gw * 0.22, 2 * gw, gw * 0.44); c.drawImage(glowDot, gx - gw, gy - gw * 0.22, 2 * gw, gw * 0.44);   // flat glints, like light on ripples
+        }
+        c.globalAlpha = 1;
+        c.globalCompositeOperation = "source-over";
+        c.restore();
+      }
+
+      // --- Water ripples: from where the bolt hits the water, and under each clothing panel as it comes up ---
+      if (sinceTap > WAVE_START && sinceTap < 12) {
+        c.save(); waterPath(c); c.clip();
+        ripple(IMPACT[0], IMPACT[1], sinceTap - WAVE_START, WAVE_MAX, 0.9, WAVE_LIFE);
+        if (clothesAt >= 0) rises.forEach(function (el) {
+          var age = t - clothesAt - riseDelay(el);
+          if (age > 0 && age < 5) { var pi2 = rises.indexOf(el) + 1; ripple(+el.dataset.x, +el.dataset.y, age, 240 + 40 * seeded(pi2), 0.6, 2.8, pi2); }   // churned water while it rises
+        });
+        c.restore();
+      }
+
       // --- Lightning: the bolt flashes, and so does its reflection ---
       if (flash > 0) {
         c.globalCompositeOperation = "lighter";
@@ -898,9 +1396,12 @@
 
       // --- The leaf: our character. Its shadow moves with it ---
       // Power effect on the leaf: it's sucked in toward the lightning, then blown out by the strike and springs back
+      var ts = -1;   // a click no longer moves the leaf (Nov 10, Rin: the click is too gentle to move it). Only the big first strike does.
+      var tapLean = ts > 0 ? LEAF_REACT * 12 * (1 - Math.exp(-ts * 14)) * Math.exp(-1.4 * ts) * Math.cos(ts * 5) : 0;
+      var tapGrow = ts > 0 ? 0.1 * LEAF_REACT * (1 - Math.exp(-ts * 14)) * Math.exp(-2 * ts) : 0;
       var leanIn = LEAF_REACT * -10 * pull * (since > 0 ? Math.exp(-since * 10) : 1) + Math.sin(t * 31) * 1.3 * LEAF_REACT * pull * (since > 0 ? 0 : 1);
-      var leanOut = since > 0 ? LEAF_REACT * 17 * (1 - Math.exp(-since * 14)) * Math.exp(-1.4 * since) * Math.cos(since * 5) : 0;
-      var leafSize = 1 - 0.08 * LEAF_REACT * pull * (since > 0 ? Math.exp(-since * 10) : 1) + (since > 0 ? 0.14 * LEAF_REACT * (1 - Math.exp(-since * 14)) * Math.exp(-2 * since) : 0);
+      var leanOut = (since > 0 ? LEAF_REACT * 17 * (1 - Math.exp(-since * 14)) * Math.exp(-1.4 * since) * Math.cos(since * 5) : 0) + tapLean;
+      var leafSize = 1 - 0.08 * LEAF_REACT * pull * (since > 0 ? Math.exp(-since * 10) : 1) + (since > 0 ? 0.14 * LEAF_REACT * (1 - Math.exp(-since * 14)) * Math.exp(-2 * since) : 0) + tapGrow;
       var sway = (Math.sin(t * 0.9) * 2.2 + Math.sin(t * 2.3) * 0.6 + flash * 1.5 + leanIn + leanOut) * Math.PI / 180;
       var sunShadow = 0.5 + 0.5 * clear;                // faint and hazy in the fog, deep and real once the light is clear
       c.save();                                       // shadow, stretched long across the sand
@@ -931,7 +1432,7 @@
       c.globalCompositeOperation = "screen";            // a living glow around the leaf
       var haloR = 150 * (1 + 0.6 * Math.min(1, flash));   // the glow swells with the strike
       var halo = c.createRadialGradient(1509, 1598, 0, 1509, 1598, haloR);
-      halo.addColorStop(0, "rgba(180, 240, 160, " + (0.3 + 0.1 * breath + 0.3 * LEAF_REACT * flash + 0.7 * tapGlow) + ")");
+      halo.addColorStop(0, "rgba(180, 240, 160, " + (0.3 + 0.1 * breath + 0.3 * LEAF_REACT * flash + 0.7 * tapGlow + (ts > 0 ? 0.6 * Math.exp(-ts * 2.5) : 0)) + ")");
       halo.addColorStop(1, "rgba(180, 240, 160, 0)");
       c.fillStyle = halo;
       c.fillRect(1509 - haloR, 1598 - haloR, haloR * 2, haloR * 2);
