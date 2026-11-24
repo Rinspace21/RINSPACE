@@ -799,10 +799,30 @@ id="eyeLeaf" class="new-leaf new-leaf-eye" d="M318.5,289l-2.88,3.46,4.21.34,2.45
     document.querySelector(".plant").classList.toggle("show-roots");
   });
 
-  // Coming back with the Back button: start fresh so the face grows again
+  // Coming back with the Back button: show the plant fully grown, all at once.
+  // (A fresh visit still grows it from the soil.)
+  function showFullyGrown() {
+    // Jump the drawn lines (vines, eyebrow, lip curl) to their end
+    document.querySelectorAll("svg").forEach(function (svg) {
+      if (svg.setCurrentTime) {
+        svg.setCurrentTime(60);
+      }
+    });
+    // Jump the leaves and stem to their end (the breeze and dust keep moving)
+    if (document.getAnimations) {
+      document.getAnimations().forEach(function (animation) {
+        var timing = animation.effect && animation.effect.getComputedTiming();
+        if (timing && timing.endTime !== Infinity) {
+          animation.finish();
+        }
+      });
+    }
+  }
+
   window.addEventListener("pageshow", function (event) {
-    if (event.persisted) {
-      window.location.reload();
+    var nav = performance.getEntriesByType("navigation")[0];
+    if (event.persisted || (nav && nav.type === "back_forward")) {
+      showFullyGrown();
     }
   });
 </script>
