@@ -798,6 +798,13 @@ id="eyeLeaf" class="new-leaf new-leaf-eye" d="M318.5,289l-2.88,3.46,4.21.34,2.45
   document.querySelector(".root-zone").addEventListener("click", function () {
     document.querySelector(".plant").classList.toggle("show-roots");
   });
+
+  // Coming back with the Back button: start fresh so the face grows again
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
 </script>
     </body>
     </html>

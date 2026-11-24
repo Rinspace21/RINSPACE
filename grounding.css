@@ -232,7 +232,8 @@ body::before {
 }
 
 .look-up .photo-row,
-.look-up .rock {
+.look-up .rock,
+.look-up .sky {
   opacity: 0;
   transition: opacity 0.8s;
 }
