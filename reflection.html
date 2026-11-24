@@ -100,10 +100,10 @@
     });
     var CARD_W = 170, CARD_H = 300;   // size of each clothing screen, in picture pixels
     var RIPPLE_SPEED = 1100, IMPACT = [797, 985];   // how fast the ripples spread across the water (picture pixels a second), and where the bolt hits it
-    var WAVE_START = 0.55, WAVE_MAX = 2600, WAVE_LIFE = 4.5;    // (Rin: about a quarter slower than the first version)   // the big wave from the bolt: when it starts, how far it spreads, how long it takes
+    var WAVE_START = 0.55, WAVE_MAX = 6000, WAVE_LIFE = 10.9;   // (Nov 23, Rin: the sea wave and the shore didn't sync) the wave now travels all the way in and lands on the beach, instead of dying out at sea    // (Rin: about a quarter slower than the first version)   // the big wave from the bolt: when it starts, how far it spreads, how long it takes
     // Nov 20 (Rin): L1 = first strike, L2 = the click that strikes again. L2 starts the quill writing; the L2 wave reaches the beach,
     // rushes up over the writing, the water dries 2-3 s later leaving it darker, and the panels rise as the water runs back out to sea.
-    var SURGE_UP = 0.8, BACK_AFTER = 4.4, BACK_SPEED = 1400;       // surge rushes up in 0.5 s; the backwash leaves 1.6 s after the wave lands, crossing the water at this speed
+    var SURGE_UP = 0.8, BACK_AFTER = 3.6, BACK_SPEED = 1400;       // surge rushes up in 0.5 s; the backwash leaves 1.6 s after the wave lands, crossing the water at this speed
     function ellD(x, y) { var dx = x - IMPACT[0], dy = (y - IMPACT[1]) / 0.16; return Math.sqrt(dx * dx + dy * dy); }
     function shoreArrive(x) { return waveDelay(x, shoreY(Math.max(0, Math.min(IW, x)))); }   // seconds after L2 until the wave lands on the beach here
     function riseDelay(el) {                       // each panel rises as the water running back from the shore reaches it
@@ -1017,6 +1017,7 @@
     var LETTER_WATER = 1;                                  // (Nov 20, Rin) the words fill with water, same look as the surge on the beach. 0 = off
     var FLOW = 700, DRY_AFTER = 1.4, WATER_STOP = 69;   // (Nov 20, Rin) the water stops after "ma" in "made" (stroke 69 starts the "d"); dries sooner                         // water creeps along the letters at this speed (px/s); each part dries 3 s after it filled
     var surgeEdgeNow = null, sandWaterTap = -1;
+    var DAMP_HOLD = 5, DAMP_FADE = 6;                       // (Nov 23, Rin) the dark damp letters stay dark this long, then fade back to the lighter lettering over this many seconds
     function surgeEdgeY(x) {                              // where the L2 water's edge is on the sand right now, at this x (null = no surge)
       var e = surgeEdgeNow; if (!e) return null;
       var i = Math.max(0, Math.min(e.length - 2, Math.floor(x / 15))), u = Math.max(0, Math.min(1, (x - e[i][0]) / 15));
@@ -1039,10 +1040,10 @@
         var writtenAt = wStart + g.from / penLen * WRITE_TIME;
         var damp = 0, water = 0;
         if (g.covT < 0) continue;                               // no water here (yet)
-        if (g.uncT >= 0 && writtenAt > g.uncT) damp = 1;        // written after the water left: pressed into damp sand, darker straight away
+        if (g.uncT >= 0 && writtenAt > g.uncT) damp = 1 - smooth((t - writtenAt - DAMP_HOLD) / DAMP_FADE);   // written after the water left: pressed into damp sand, darker straight away, then dries back
         else {
           water = Math.min(1, (t - Math.max(g.covT, writtenAt)) / 0.25);   // fills the moment the water runs over it (or as it's written under the water)
-          if (g.uncT >= 0) { water *= 1 - smooth((t - g.uncT) / 1.0); damp = smooth((t - g.uncT + 0.3) / 1.2); }   // the colour leaves with the water
+          if (g.uncT >= 0) { water *= 1 - smooth((t - g.uncT) / 1.0); damp = smooth((t - g.uncT + 0.3) / 1.2) * (1 - smooth((t - g.uncT - DAMP_HOLD) / DAMP_FADE)); }   // the colour leaves with the water; the dark damp look slowly dries back to the light lettering
         }
         var bx = g.a[0] + (g.b[0] - g.a[0]) * f, by = g.a[1] + (g.b[1] - g.a[1]) * f;
         function seg(w, color, dy) { c.strokeStyle = color; c.lineWidth = w; c.beginPath(); c.moveTo(g.a[0], g.a[1] + dy); c.lineTo(bx, by + dy); c.stroke(); }
@@ -1434,7 +1435,7 @@
         var v = 0.5 + 0.5 * Math.sin(x * 0.006 + waveNo * 2.1) * Math.sin(x * 0.0023 + waveNo * 1.3 + 1);
         return 0.25 + 0.75 * v;
       }
-      function surgeLand(x) { return waveDelay(x, shoreY(Math.max(0, Math.min(IW, x)))) + Math.max(0, x - 1000) / 1000; }   // the wave lands near the strike first and sweeps along the beach to the right (Nov 23, Rin: give it motion)
+      function surgeLand(x) { return shoreArrive(x); }   // the surge starts exactly where and when the sea wave reaches the beach, nearest point first (Nov 23, Rin: sync)
       function surgeAt(x) {                                      // the lightning wave reaches the beach here and rushes up the sand (Nov 20, Rin liked this from the swell try)
         if (!SURGE || sinceTap <= 0 || sinceTap > 16) return 0;
         var sIn = sinceTap - surgeLand(x);
