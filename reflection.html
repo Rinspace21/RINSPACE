@@ -106,10 +106,7 @@
     var SURGE_UP = 0.8, BACK_AFTER = 3.6, BACK_SPEED = 1400;       // surge rushes up in 0.5 s; the backwash leaves 1.6 s after the wave lands, crossing the water at this speed
     function ellD(x, y) { var dx = x - IMPACT[0], dy = (y - IMPACT[1]) / 0.16; return Math.sqrt(dx * dx + dy * dy); }
     function shoreArrive(x) { return waveDelay(x, shoreY(Math.max(0, Math.min(IW, x)))); }   // seconds after L2 until the wave lands on the beach here
-    function riseDelay(el) {                       // each panel rises as the water running back from the shore reaches it
-      var x = +el.dataset.x, y = +el.dataset.y;
-      return shoreArrive(x) + BACK_AFTER + Math.max(0, ellD(x, shoreY(x)) - ellD(x, y)) / BACK_SPEED;
-    }
+    function riseDelay(el) { return waveDelay(+el.dataset.x, +el.dataset.y); }   // (Nov 26, Rin) back to how it was: each panel rises as L2's wave reaches it, not on the drawback
     function waveDelay(x, y) {                     // seconds after a click until the wave's crest reaches this spot (panels rise, the leaf reacts)
       var dx = x - IMPACT[0], dy = (y - IMPACT[1]) / 0.16;
       var d = Math.min(WAVE_MAX * 0.98, Math.sqrt(dx * dx + dy * dy) / wob(Math.atan2(dy, dx), 0));   // where the first wave's uneven edge reaches it
@@ -1435,23 +1432,22 @@
         var v = 0.5 + 0.5 * Math.sin(x * 0.006 + waveNo * 2.1) * Math.sin(x * 0.0023 + waveNo * 1.3 + 1);
         return 0.25 + 0.75 * v;
       }
-      function surgeLand(x) { return shoreArrive(x); }   // the surge starts exactly where and when the sea wave reaches the beach, nearest point first (Nov 23, Rin: sync)
+      function surgeLand(x) { return shoreArrive(1900) + 0.25 * Math.sin(x * 0.0021 + 0.8) + 0.15 * Math.sin(x * 0.0057 + 2.1); }   // (Nov 26, Rin: not one heavy spot first then down the line) the wave lands along the whole beach together, with just a little unevenness   // the surge starts exactly where and when the sea wave reaches the beach, nearest point first (Nov 23, Rin: sync)
       function surgeAt(x) {                                      // the lightning wave reaches the beach here and rushes up the sand (Nov 20, Rin liked this from the swell try)
         if (!SURGE || sinceTap <= 0 || sinceTap > 16) return 0;
         var sIn = sinceTap - surgeLand(x);
-        if (sIn <= 0 || sIn > 8.4) return 0;
-        var up = 1.5 * (1 + 0.22 * Math.sin(x * 0.0083 + 0.7) + 0.1 * Math.sin(x * 0.021 + 2));   // some tongues of water run ahead of others
-        if (sIn < up) return 0.93 * (1 - Math.pow(1 - sIn / up, 3));                            // rushes in fast, slowing as it climbs the sand
-        if (sIn < up + 1.3) return 0.93 + 0.07 * smooth((sIn - up) / 1.3);                       // the last of it creeps a little further
-        if (sIn < 3.4) return 1;                                                                  // a breath at the top
-        var back = (sIn - 3.4) / 5;                                                               // then it is pulled back down the sand, slowly at first
-        return Math.max(0, 1 - smooth(back) - 0.025 * Math.sin(back * 9.4) * Math.sin(Math.PI * back));   // with a little hitch as it goes
+        if (sIn <= 0 || sIn > 6.6) return 0;
+        var up = 1.6 * (1 + 0.05 * Math.sin(x * 0.0041 + 0.7));                                // (Nov 26, Rin: real water reaching a shore is coherent) one even sheet
+        if (sIn < up) return 1 - Math.pow(1 - sIn / up, 3);                                     // runs up the sand, slowing as it climbs
+        if (sIn < up + 0.7) return 1;                                                             // stops for a moment at the top
+        var back = (sIn - up - 0.7) / 3.6;                                                        // then drains back down, slowly at first and quicker as it goes
+        return back >= 1 ? 0 : 1 - Math.pow(back, 1.7);
       }
       function surgeReach(x) { var need = Math.max(240, 1880 - shoreY(Math.min(x, IW)) - 10 * Math.sin(x * 0.02)); return 240 + (need - 240) * smooth((x - 1150) / 450); }   // over the writing, right down to the bottom of it, easing in from the left   // over the writing, right down to the bottom of it
       function surgeShape(x) {                                   // uneven tongues of water, tapering off softly at the right instead of a straight cut (Nov 20, Rin: not sloppy)
         var dr = Math.max(0, Math.min(sinceTap, 13));                   // the tongues drift and change shape while the water moves (Nov 23, Rin: motion)
-        var lobe = 26 * Math.sin(x * 0.0062 + 1.3 + dr * 0.22) + 14 * Math.sin(x * 0.0139 + 0.4 - dr * 0.45) + 6 * Math.sin(x * 0.029 + 2.2 + dr * 0.9);   // gentle, rounded tongues
-        return Math.max(0, surgeReach(x) - 40 + lobe) * smooth((IW - x) / 420);
+        var lobe = 12 * Math.sin(x * 0.0062 + 1.3 + dr * 0.12) + 6 * Math.sin(x * 0.0139 + 0.4 - dr * 0.2) + 3 * Math.sin(x * 0.029 + 2.2 + dr * 0.4);   // (Nov 26) smaller, calmer tongues so the edge reads as one line   // gentle, rounded tongues
+        return Math.max(0, surgeReach(x) - 40 + lobe) * smooth((IW + 280 - x) / 520);   // (Nov 26, Rin: no right angle) tapers off out on the side strip, past the picture edge, instead of stopping at it
       }
       function washAt(x) { return Math.max(wash * reach * runUp(x), surgeShape(x) * surgeAt(x)); }
       var waveNo = Math.floor(t / WAVE_TIME);
@@ -1459,7 +1455,7 @@
         var v = 0.5 + 0.5 * Math.sin(x * 0.006 + waveNo * 2.1) * Math.sin(x * 0.0023 + waveNo * 1.3 + 1);
         return 0.25 + 0.75 * v;
       }
-      var ROLL_END = IW;                                         // the waves stay inside your picture, not on the side strips
+      var ROLL_END = IW + 300;                                   // (Nov 26) the surge carries on a little onto the side strip so it never stops in a corner; the everyday waves still stay inside your picture (edgeFadeX)                                         // the waves stay inside your picture, not on the side strips
       // swells: separate little waves of lacy foam that form in different spots, roll in toward the shore and fade
       function edgeFadeX(x) { return Math.max(0, Math.min(1, x / 160, (IW - x) / 160)); }   // waves stay inside your picture
       swells.forEach(function (sw) {
@@ -1486,7 +1482,7 @@
       });
       var edge = [];
       for (var ex = 0; ex <= ROLL_END; ex += 15) {
-        edge.push([ex, shoreY(Math.min(ex, IW)) + 2 + washAt(ex) * Math.max(edgeFadeX(ex), surgeAt(ex) > 0 ? 1 : 0) + Math.sin(ex * 0.017 + t * 1.3) * 6 + Math.sin(ex * 0.05 - t) * 3]);
+        edge.push([ex, shoreY(Math.min(ex, IW)) + 2 + washAt(ex) * Math.max(edgeFadeX(ex), surgeAt(ex) > 0 ? 1 : 0) + (Math.sin(ex * 0.017 + t * 1.3) * 6 + Math.sin(ex * 0.05 - t) * 3) * edgeFadeX(ex)]);   // the ripple on the edge fades out at the picture edge too (no corner)
       }
       c.save();
       c.beginPath();
